@@ -1,0 +1,30 @@
+# Python & Virtualenv
+backend/venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node & Frontend
+frontend/node_modules/
+node_modules/
+frontend/dist/
+dist/
+.npm
+*.log
+
+# Database
+# tip.db (SQLite database - un-comment if you do not want to push local DB)
+# backend/tip.db
+
+# Environment & Local Editor
+.env
+.env.local
+*.tmp
+.DS_Store
+Thumbs.db
+
