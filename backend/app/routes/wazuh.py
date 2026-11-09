@@ -1,3 +1,4 @@
+import re
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Depends, Query, Response, HTTPException, status
 from pydantic import BaseModel
@@ -7,7 +8,6 @@ from app.models.ioc import IOC
 from app.models.feed_ioc import FeedIOC
 from app.models.case import Case
 from app.services import ioc_retention_service
-from app.services.validator import validate_and_normalize_ioc
 
 router = APIRouter(prefix="/wazuh", tags=["Wazuh CTI Integration"])
 
@@ -15,6 +15,19 @@ router = APIRouter(prefix="/wazuh", tags=["Wazuh CTI Integration"])
 class WazuhMatchRequest(BaseModel):
     value: str
     ioc_type: Optional[str] = None
+
+
+def sanitize_cdb_value(val: str, default: str = "MALICIOUS") -> str:
+    """
+    Sanitizes values for Wazuh CDB files.
+    Wazuh CDB requires `key:value` without spaces, colons, or control characters.
+    """
+    if not val:
+        return default
+    cleaned = re.sub(r"[^a-zA-Z0-9_\-]", "_", val).strip("_")
+    # Collapse multiple consecutive underscores
+    cleaned = re.sub(r"_+", "_", cleaned)
+    return cleaned or default
 
 
 @router.get("/stats")
@@ -37,17 +50,23 @@ def get_wazuh_integration_stats(db: Session = Depends(get_db)):
 
     core_cases_count = db.query(Case).count()
     core_iocs_count = db.query(IOC).count()
+    core_ips = db.query(IOC).filter(IOC.ioc_type.in_(["IPv4", "IPv6"])).count()
+    core_hashes = db.query(IOC).filter(IOC.ioc_type.in_(["MD5", "SHA1", "SHA256"])).count()
+    core_domains = db.query(IOC).filter(IOC.ioc_type == "Domain").count()
 
     return {
         "status": "ready",
-        "wazuh_cdb_ready_ips": active_feed_ips,
+        "wazuh_cdb_ready_ips": active_feed_ips + core_ips,
         "wazuh_ready_urls": active_feed_urls,
+        "wazuh_ready_hashes": core_hashes,
+        "wazuh_ready_domains": core_domains,
         "total_active_feed_indicators": total_feed_iocs,
         "verified_internal_cases": core_cases_count,
         "verified_internal_iocs": core_iocs_count,
         "cdb_endpoints": {
             "ips_cdb": "/api/wazuh/lists/ips.cdb",
             "hashes_cdb": "/api/wazuh/lists/hashes.cdb",
+            "domains_cdb": "/api/wazuh/lists/domains.cdb",
             "urls_txt": "/api/wazuh/lists/urls.txt",
         },
     }
@@ -75,8 +94,8 @@ def export_wazuh_ip_cdb_list(
             if ip and ip not in seen_ips:
                 seen_ips.add(ip)
                 case_names = [c.case_id for c in ioc.cases]
-                tag = f"SOC_CASE_{'_'.join(case_names)}" if case_names else "SOC_CONFIRMED"
-                cdb_lines.append(f"{ip}:{tag}")
+                raw_tag = f"SOC_CASE_{'_'.join(case_names)}" if case_names else "SOC_CONFIRMED"
+                cdb_lines.append(f"{ip}:{sanitize_cdb_value(raw_tag)}")
 
     # 2. Include active high-confidence feed IPs (Tier 1 Staging)
     query = db.query(FeedIOC).filter(
@@ -91,11 +110,10 @@ def export_wazuh_ip_cdb_list(
         ip = fi.normalized_value.strip()
         if ip and ip not in seen_ips:
             seen_ips.add(ip)
-            # Clean safe tag for Wazuh CDB
-            safe_source = fi.source_name.replace(" ", "_").replace(".", "_")
+            safe_source = sanitize_cdb_value(fi.source_name, default="CTI_FEED")
             cdb_lines.append(f"{ip}:{safe_source}")
 
-    content = "\n".join(cdb_lines) + "\n"
+    content = "\n".join(cdb_lines) + "\n" if cdb_lines else ""
     return Response(
         content=content,
         media_type="text/plain",
@@ -112,16 +130,45 @@ def export_wazuh_hash_cdb_list(
     or Sysmon hash matching.
     """
     lines = []
+    seen = set()
     hashes = db.query(IOC).filter(IOC.ioc_type.in_(["MD5", "SHA1", "SHA256"])).all()
     for h in hashes:
-        val = h.normalized_value.strip()
-        lines.append(f"{val}:{h.ioc_type}_CONFIRMED")
+        val = h.normalized_value.strip().lower()
+        if val and val not in seen:
+            seen.add(val)
+            tag = sanitize_cdb_value(f"{h.ioc_type}_CONFIRMED")
+            lines.append(f"{val}:{tag}")
 
-    content = "\n".join(lines) + "\n"
+    content = "\n".join(lines) + "\n" if lines else ""
     return Response(
         content=content,
         media_type="text/plain",
         headers={"Content-Disposition": 'attachment; filename="malicious_hashes.cdb"'},
+    )
+
+
+@router.get("/lists/domains.cdb")
+def export_wazuh_domain_cdb_list(
+    db: Session = Depends(get_db),
+):
+    """
+    Exports malicious domain names for Wazuh DNS query matching (Sysmon Event ID 22 or Zeek DNS).
+    """
+    lines = []
+    seen = set()
+    domains = db.query(IOC).filter(IOC.ioc_type == "Domain").all()
+    for d in domains:
+        val = d.normalized_value.strip().lower()
+        if val and val not in seen:
+            seen.add(val)
+            tag = sanitize_cdb_value("MALICIOUS_C2_DOMAIN")
+            lines.append(f"{val}:{tag}")
+
+    content = "\n".join(lines) + "\n" if lines else ""
+    return Response(
+        content=content,
+        media_type="text/plain",
+        headers={"Content-Disposition": 'attachment; filename="malicious_domains.cdb"'},
     )
 
 
@@ -134,15 +181,28 @@ def export_malicious_urls(
     Suricata, or Wazuh Suricata alert correlation.
     """
     lines = []
+    seen = set()
+    # Core URLs
+    core_urls = db.query(IOC).filter(IOC.ioc_type == "URL").all()
+    for u in core_urls:
+        val = u.value.strip()
+        if val and val not in seen:
+            seen.add(val)
+            lines.append(val)
+
+    # Feed URLs
     feed_urls = (
         db.query(FeedIOC)
         .filter(FeedIOC.is_active == True, FeedIOC.ioc_type == "URL")
         .all()
     )
     for u in feed_urls:
-        lines.append(u.value.strip())
+        val = u.value.strip()
+        if val and val not in seen:
+            seen.add(val)
+            lines.append(val)
 
-    content = "\n".join(lines) + "\n"
+    content = "\n".join(lines) + "\n" if lines else ""
     return Response(
         content=content,
         media_type="text/plain",

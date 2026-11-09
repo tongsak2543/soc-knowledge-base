@@ -8,7 +8,7 @@ class Case(Base):
     __tablename__ = "cases"
 
     id = Column(Integer, primary_key=True, index=True)
-    case_id = Column(String(50), unique=True, nullable=False, index=True)  # e.g. CASE-2024-001
+    case_id = Column(String(50), unique=True, nullable=False, index=True)  # e.g. CASE-2024-001 or CTI-2026-001
     title = Column(String(255), nullable=False, index=True)
     summary = Column(Text, nullable=True)
     category = Column(String(50), nullable=False, index=True)
@@ -28,6 +28,11 @@ class Case(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
+    # MISP Integration Fields
+    uuid = Column(String(36), nullable=True, index=True)
+    tlp = Column(String(20), nullable=True, default="TLP:AMBER")
+    threat_level = Column(String(20), nullable=True, default="High")
+    analysis_stage = Column(String(50), nullable=True, default="Analysis Complete")
+
     # Many-to-many relationship with IOCs
     iocs = relationship("IOC", secondary=case_iocs, back_populates="cases", lazy="selectin")
-

@@ -5,7 +5,7 @@ import {
   Crosshair,
   LayoutDashboard,
   ExternalLink,
-  Rss,
+  Shield,
   Trash2,
   Database,
 } from 'lucide-react'
@@ -13,7 +13,7 @@ import { api } from '../services/api'
 import { useLanguage } from '../context/LanguageContext'
 import { LanguageToggle } from './LanguageToggle'
 
-export type TabType = 'cases' | 'feeds' | 'iocs' | 'dashboard'
+export type TabType = 'iocs' | 'wazuh' | 'cases' | 'dashboard'
 
 interface SidebarProps {
   activeTab: TabType
@@ -84,36 +84,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span className="text-emerald-400 text-[11px]">{t('statusActive')}</span>
         </div>
 
-        {/* Navigation Menu */}
+        {/* Navigation Menu - IOC Focused */}
         <nav className="p-3 space-y-1">
           <div className="px-3 py-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
             {t('menuSection')}
           </div>
 
-          <button
-            onClick={() => setActiveTab('cases')}
-            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'cases'
-                ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <Briefcase className="w-4 h-4" />
-            <span>{t('navCases')}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('feeds')}
-            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'feeds'
-                ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-            }`}
-          >
-            <Rss className="w-4 h-4 text-rose-400" />
-            <span>{t('navFeeds')}</span>
-          </button>
-
+          {/* 1. IOC Repository - Primary */}
           <button
             onClick={() => setActiveTab('iocs')}
             className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
@@ -122,10 +99,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
             }`}
           >
-            <Crosshair className="w-4 h-4" />
+            <Crosshair className="w-4 h-4 text-cyan-400" />
             <span>{t('navIoc')}</span>
           </button>
 
+          {/* 2. Wazuh CTI Integration */}
+          <button
+            onClick={() => setActiveTab('wazuh')}
+            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'wazuh'
+                ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <Shield className="w-4 h-4 text-emerald-400" />
+            <span>{t('navWazuh')}</span>
+          </button>
+
+          {/* 3. Case Knowledge Base */}
+          <button
+            onClick={() => setActiveTab('cases')}
+            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'cases'
+                ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <Briefcase className="w-4 h-4 text-blue-400" />
+            <span>{t('navCases')}</span>
+          </button>
+
+          {/* 4. SOC Dashboard */}
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
@@ -134,7 +138,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
             }`}
           >
-            <LayoutDashboard className="w-4 h-4" />
+            <LayoutDashboard className="w-4 h-4 text-purple-400" />
             <span>{t('navDashboard')}</span>
           </button>
         </nav>

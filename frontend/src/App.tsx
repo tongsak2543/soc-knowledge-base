@@ -1,8 +1,8 @@
 import React, { useState, Component, type ReactNode } from 'react'
 import { Sidebar, type TabType } from './components/Sidebar'
-import { CasePage } from './pages/CasePage'
-import { FeedPage } from './pages/FeedPage'
 import { IOCPage } from './pages/IOCPage'
+import { WazuhPage } from './pages/WazuhPage'
+import { CasePage } from './pages/CasePage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LanguageProvider } from './context/LanguageContext'
 
@@ -56,8 +56,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 const AppContent: React.FC = () => {
-  // Case Knowledge Base is the primary landing page as requested
-  const [activeTab, setActiveTab] = useState<TabType>('cases')
+  // IOC Repository is the primary landing page as requested ("ioc only pls")
+  const [activeTab, setActiveTab] = useState<TabType>('iocs')
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0)
   const [targetIocId, setTargetIocId] = useState<number | null>(null)
 
@@ -89,27 +89,22 @@ const AppContent: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-950 via-slate-950 to-[#080d1a]">
-        {activeTab === 'cases' && (
-          <CasePage
-            onNavigateToIOC={handleNavigateToIOC}
-            refreshTrigger={refreshTrigger}
-          />
-        )}
-
-        {activeTab === 'feeds' && (
-          <FeedPage
-            onNavigateToCase={(_caseId) => {
-              triggerGlobalRefresh()
-              setActiveTab('cases')
-            }}
-          />
-        )}
-
         {activeTab === 'iocs' && (
           <IOCPage
             onNavigateToCase={handleNavigateToCases}
             refreshTrigger={refreshTrigger}
             targetIocId={targetIocId}
+          />
+        )}
+
+        {activeTab === 'wazuh' && (
+          <WazuhPage />
+        )}
+
+        {activeTab === 'cases' && (
+          <CasePage
+            onNavigateToIOC={handleNavigateToIOC}
+            refreshTrigger={refreshTrigger}
           />
         )}
 
