@@ -2,6 +2,8 @@
 
 A lightweight, standalone, fully functional Knowledge Base designed specifically for internal Security Operations Center (SOC) and Digital Forensics & Incident Response (DFIR) use. It empowers analysts to record historical case investigations, search previous findings, correlate detected Indicators of Compromise (IOCs), and reuse proven investigation steps when similar incidents recur.
 
+> 🚀 **Wazuh SIEM Integration Guide**: For full production deployment instructions with Wazuh CDB Lists, Direct Webhooks, and custom detection rules for **Coinminer** & **Cobalt Strike**, read [WAZUH_INTEGRATION_GUIDE.md](file:///c:/Cti%20For%20wazuh/WAZUH_INTEGRATION_GUIDE.md).
+
 ---
 
 ## 1. Summary of Implemented Features
