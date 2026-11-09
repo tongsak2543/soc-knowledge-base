@@ -497,9 +497,134 @@ curl -s http://${apiHost}:8000/api/wazuh/lists/ips.cdb -o /var/ossec/etc/lists/m
             </div>
             <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-slate-300 overflow-x-auto">
               <pre>{`# ใส่ใน crontab ของ root บน Wazuh Server (crontab -e)
-0 * * * * curl -s http://${apiHost}:8000/api/wazuh/lists/ips.cdb -o /var/ossec/etc/lists/malicious_ips && /var/ossec/bin/wazuh-makelists`}</pre>
+0 * * * * curl -s http://${apiHost}:8000/api/wazuh/lists/ips.cdb -o /var/ossec/etc/lists/malicious_ips && curl -s http://${apiHost}:8000/api/wazuh/lists/domains.cdb -o /var/ossec/etc/lists/malicious_domains && curl -s http://${apiHost}:8000/api/wazuh/lists/hashes.cdb -o /var/ossec/etc/lists/malicious_hashes && /var/ossec/bin/wazuh-makelists`}</pre>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Specialized Rules: Coinminer & Cobalt Strike */}
+      <div className="bg-slate-900/80 border border-amber-500/30 rounded-xl p-5 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+            <h2 className="text-sm font-bold text-white flex items-center gap-2">
+              <Shield className="w-4 h-4 text-amber-400" />
+              {isTh ? '🛡️ กฎตรวจจับ Coinminer & Cobalt Strike พิเศษสำหรับองค์กร (Custom Wazuh Rules)' : 'Specialized Coinminer & Cobalt Strike Detection Rules'}
+            </h2>
+          </div>
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800/50">
+            High Priority
+          </span>
+        </div>
+
+        <p className="text-xs text-slate-300">
+          {isTh
+            ? 'คัดลอก XML ด้านล่างนี้ไปวางไว้ใน /var/ossec/etc/rules/local_rules.xml บนเครื่อง Wazuh เพื่อตรวจจับการขุดเหรียญ (XMRig/Stratum) และ Cobalt Strike Beacon ทันทีที่เครื่องลูกข่ายเริ่มขยับตัว'
+            : 'Copy and paste the XML below into /var/ossec/etc/rules/local_rules.xml on Wazuh Manager to catch Coinminers and Cobalt Strike Beacons immediately.'}
+        </p>
+
+        <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-slate-300 font-mono text-xs overflow-x-auto space-y-3">
+          <div className="flex items-center justify-between text-slate-500 border-b border-slate-800 pb-1.5">
+            <span>local_rules.xml</span>
+            <button
+              onClick={() => copyToClipboard(`<!-- Coinminer & Cobalt Strike Detection Group -->
+<group name="coinminer,cobalt_strike,cti_intel,">
+
+  <!-- 1. Coinminer: Outbound traffic to Monero / XMRig Mining Pool Domains -->
+  <rule id="100400" level="13">
+    <list field="data.win.eventdata.queryName" lookup="match_key">etc/lists/malicious_domains</list>
+    <description>CRITICAL COINMINER: Host requested known Cryptocurrency Mining Pool $(data.win.eventdata.queryName)</description>
+    <mitre><id>T1496</id></mitre>
+  </rule>
+
+  <!-- 2. Coinminer: Known Stratum Protocol Mining Ports -->
+  <rule id="100401" level="11">
+    <if_group>firewall,sysmon</if_group>
+    <match>3333|4444|5555|7777|8008|9000|14444</match>
+    <description>SUSPICIOUS COINMINER: Outbound traffic on default Stratum Mining Pool Port</description>
+    <mitre><id>T1496</id></mitre>
+  </rule>
+
+  <!-- 3. Coinminer: Suspicious Process Creation (XMRig / Kinsing / kswapd0) -->
+  <rule id="100402" level="12">
+    <if_group>sysmon_process_create</if_group>
+    <match>xmrig|minerd|kworker34|kswapd0|sysupdate|monero</match>
+    <description>COINMINER PROCESS DETECTED: Execution of known cryptocurrency miner binary</description>
+    <mitre><id>T1496</id></mitre>
+  </rule>
+
+  <!-- 4. Cobalt Strike: Connection to known Team Server / Beacon IP -->
+  <rule id="100410" level="14">
+    <list field="dstip" lookup="address_match_key">etc/lists/malicious_ips</list>
+    <description>ALERT CRITICAL: Outbound connection to Cobalt Strike C2 / Team Server $(dstip) ($(dstip.value))</description>
+    <mitre><id>T1071</id><id>T1571</id></mitre>
+  </rule>
+
+  <!-- 5. Cobalt Strike: Default Named Pipes Detection (Sysmon Event ID 17/18) -->
+  <rule id="100411" level="13">
+    <if_group>sysmon_event_17,sysmon_event_18</if_group>
+    <match>msagent_|status_|postex_</match>
+    <description>COBALT STRIKE NAMED PIPE: Adversary Beacon lateral movement pipe observed</description>
+    <mitre><id>T1055</id><id>T1021</id></mitre>
+  </rule>
+
+  <!-- 6. Cobalt Strike: Beacon Payload Hash Match (FIM / Sysmon) -->
+  <rule id="100412" level="14">
+    <list field="data.win.eventdata.hashes" lookup="match_key">etc/lists/malicious_hashes</list>
+    <description>CRITICAL ALERT: File hash matches confirmed Cobalt Strike Beacon artifact</description>
+    <mitre><id>T1059</id><id>T1055</id></mitre>
+  </rule>
+
+</group>`, 'custom_rules')}
+              className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-sans text-xs"
+            >
+              {copiedKey === 'custom_rules' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedKey === 'custom_rules' ? 'Copied XML!' : 'Copy Rules XML'}</span>
+            </button>
+          </div>
+
+          <pre className="text-emerald-400">{`<!-- 1. ตรวจจับการเชื่อมต่อไปยัง Monero/XMRig Mining Pools (770+ โดเมน) -->
+<rule id="100400" level="13">
+  <list field="data.win.eventdata.queryName" lookup="match_key">etc/lists/malicious_domains</list>
+  <description>CRITICAL COINMINER: Host requested known Mining Pool $(data.win.eventdata.queryName)</description>
+  <mitre><id>T1496</id></mitre>
+</rule>
+
+<!-- 2. ตรวจจับทราฟฟิกพอร์ตขุดเหรียญ Stratum (3333, 4444, 5555, 7777, 14444) -->
+<rule id="100401" level="11">
+  <match>3333|4444|5555|7777|8008|9000|14444</match>
+  <description>SUSPICIOUS COINMINER: Outbound traffic on default Stratum Mining Port</description>
+  <mitre><id>T1496</id></mitre>
+</rule>
+
+<!-- 3. ตรวจจับ Process ขุดเหรียญ (xmrig, minerd, kswapd0, sysupdate) -->
+<rule id="100402" level="12">
+  <match>xmrig|minerd|kworker34|kswapd0|sysupdate|monero</match>
+  <description>COINMINER PROCESS DETECTED: Execution of known cryptocurrency miner binary</description>
+  <mitre><id>T1496</id></mitre>
+</rule>
+
+<!-- 4. ตรวจจับการเชื่อมต่อไปยัง Cobalt Strike Team Server / C2 IP (215+ รายการ) -->
+<rule id="100410" level="14">
+  <list field="dstip" lookup="address_match_key">etc/lists/malicious_ips</list>
+  <description>CRITICAL ALERT: Outbound connection to Cobalt Strike Team Server $(dstip) ($(dstip.value))</description>
+  <mitre><id>T1071</id><id>T1571</id></mitre>
+</rule>
+
+<!-- 5. ตรวจจับ Named Pipe ของ Cobalt Strike (Sysmon Event ID 17/18: msagent_*, status_*) -->
+<rule id="100411" level="13">
+  <match>msagent_|status_|postex_</match>
+  <description>COBALT STRIKE NAMED PIPE: Adversary Beacon named pipe observed</description>
+  <mitre><id>T1055</id><id>T1021</id></mitre>
+</rule>
+
+<!-- 6. ตรวจจับแฮชไฟล์ของ Cobalt Strike Beacon (102+ แฮช) -->
+<rule id="100412" level="14">
+  <list field="data.win.eventdata.hashes" lookup="match_key">etc/lists/malicious_hashes</list>
+  <description>CRITICAL ALERT: File hash matches confirmed Cobalt Strike Beacon payload</description>
+  <mitre><id>T1059</id><id>T1055</id></mitre>
+</rule>`}</pre>
         </div>
       </div>
     </div>

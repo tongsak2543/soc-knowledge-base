@@ -11,6 +11,30 @@ from app.services.validator import validate_and_normalize_ioc
 
 IOC_FEED_SOURCES = [
     {
+        "id": "cobalt_strike",
+        "name": "Cobalt Strike C2 Tracker",
+        "type": "IPv4",
+        "description": "Active Cobalt Strike Team Servers and Beacon C2 listener IPs",
+        "badge_color": "rose",
+        "website": "https://github.com/drb-ra/C2IntelFeeds",
+    },
+    {
+        "id": "coinminer_pools",
+        "name": "Monero / XMRig Mining Pools",
+        "type": "Domain",
+        "description": "Unauthorized cryptomining pool domains and Stratum protocol endpoints",
+        "badge_color": "amber",
+        "website": "https://github.com/andoniaf/mining-pools-list",
+    },
+    {
+        "id": "signature_hashes",
+        "name": "Signature-Base Malware Hashes",
+        "type": "SHA256",
+        "description": "Curated malware, Cobalt Strike Beacons, and Coinminer hashes (Florian Roth Signature-Base)",
+        "badge_color": "rose",
+        "website": "https://github.com/Neo23x0/signature-base",
+    },
+    {
         "id": "ipsum",
         "name": "IPsum Threat Intelligence",
         "type": "IPv4",
@@ -19,28 +43,20 @@ IOC_FEED_SOURCES = [
         "website": "https://github.com/stamparm/ipsum",
     },
     {
-        "id": "et_compromised",
-        "name": "Proofpoint Emerging Threats",
-        "type": "IPv4",
-        "description": "Actively compromised hosts and adversary C2 infrastructure",
-        "badge_color": "cyan",
-        "website": "https://rules.emergingthreats.net",
-    },
-    {
-        "id": "signature_hashes",
-        "name": "Signature-Base Malware Hashes",
-        "type": "SHA256",
-        "description": "Curated malware hashes (Florian Roth Signature-Base)",
-        "badge_color": "rose",
-        "website": "https://github.com/Neo23x0/signature-base",
-    },
-    {
         "id": "blackbook_domains",
         "name": "Blackbook Malicious Domains",
         "type": "Domain",
         "description": "Active C2 and malware infrastructure domains",
         "badge_color": "purple",
         "website": "https://github.com/stamparm/blackbook",
+    },
+    {
+        "id": "et_compromised",
+        "name": "Proofpoint Emerging Threats",
+        "type": "IPv4",
+        "description": "Actively compromised hosts and adversary C2 infrastructure",
+        "badge_color": "cyan",
+        "website": "https://rules.emergingthreats.net",
     },
     {
         "id": "openphish",
@@ -66,6 +82,63 @@ _ioc_cache: Dict[str, Any] = {
     "items": [],
 }
 CACHE_TTL_SECONDS = 300  # 5 minutes
+
+
+def fetch_cobalt_strike_c2(limit: int = 500) -> List[Dict[str, Any]]:
+    """Fetches verified Cobalt Strike Team Server and C2 Beacon IPs."""
+    items = []
+    url = "https://raw.githubusercontent.com/drb-ra/C2IntelFeeds/master/feeds/IPC2s-30day.csv"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 SOC-TIP/2.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            lines = [line.decode("utf-8", errors="ignore").strip() for line in r.readlines()]
+            for line in lines[1:limit]:
+                if line and not line.startswith("#"):
+                    parts = line.split(",")
+                    ip = parts[0].strip().strip('"')
+                    tag = parts[1].strip().strip('"') if len(parts) > 1 else "Cobalt Strike C2"
+                    if ip and re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip):
+                        items.append({
+                            "id": f"cs-{ip}",
+                            "ioc_type": "IPv4",
+                            "value": ip,
+                            "source_id": "cobalt_strike",
+                            "source_name": "Cobalt Strike Team Server Tracker",
+                            "threat_context": f"Active Cobalt Strike C2 Server / Beacon listener ({tag})",
+                            "confidence": "Critical",
+                            "first_seen": "Active C2 Intelligence",
+                            "badge_color": "rose",
+                        })
+    except Exception as e:
+        print(f"Error fetching Cobalt Strike C2: {e}")
+    return items
+
+
+def fetch_coinminer_pools(limit: int = 800) -> List[Dict[str, Any]]:
+    """Fetches known Monero / XMRig cryptocurrency mining pool endpoints and domains."""
+    items = []
+    url = "https://raw.githubusercontent.com/andoniaf/mining-pools-list/master/mining-pools.lst"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 SOC-TIP/2.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            lines = [line.decode("utf-8", errors="ignore").strip() for line in r.readlines()]
+            for line in lines[:limit]:
+                domain = line.split(":")[0].strip()
+                if domain and "." in domain and not domain.startswith("#"):
+                    items.append({
+                        "id": f"miner-{abs(hash(domain))}",
+                        "ioc_type": "Domain",
+                        "value": domain,
+                        "source_id": "coinminer_pools",
+                        "source_name": "Monero / XMRig Mining Pool",
+                        "threat_context": "Unauthorized XMRig / Monero cryptomining pool domain (Stratum protocol)",
+                        "confidence": "Critical",
+                        "first_seen": "Active Mining Pool Directory",
+                        "badge_color": "amber",
+                    })
+    except Exception as e:
+        print(f"Error fetching Mining Pools: {e}")
+    return items
 
 
 def fetch_feodo_tracker() -> List[Dict[str, Any]]:
@@ -180,22 +253,38 @@ def fetch_ipsum(limit: int = 1500) -> List[Dict[str, Any]]:
     return items
 
 
-def fetch_malware_hashes(limit: int = 800) -> List[Dict[str, Any]]:
-    """Fetches curated malware file hashes (MD5, SHA1, SHA256) from signature-base."""
+def fetch_malware_hashes(limit: int = 1200) -> List[Dict[str, Any]]:
+    """
+    Fetches curated malware file hashes (MD5, SHA1, SHA256) from signature-base,
+    prioritizing Cobalt Strike Beacons and Cryptominers (XMRig, Winnti, etc.).
+    """
     items = []
     url = "https://raw.githubusercontent.com/Neo23x0/signature-base/master/iocs/hash-iocs.txt"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 SOC-TIP/2.0"})
     try:
         with urllib.request.urlopen(req, timeout=10) as r:
             lines = [line.decode("utf-8", errors="ignore").strip() for line in r.readlines()]
-            for line in lines[:limit]:
-                if not line or line.startswith("#") or ";" not in line:
+
+            # Partition lines: prioritize Cobalt Strike and Coinminer hashes
+            priority_lines = []
+            standard_lines = []
+            for l in lines:
+                if not l or l.startswith("#") or ";" not in l:
                     continue
+                lower_l = l.lower()
+                if any(k in lower_l for k in ["cobalt", "beacon", "strike", "xmrig", "miner", "monero", "stratum", "kinsing"]):
+                    priority_lines.append(l)
+                else:
+                    standard_lines.append(l)
+
+            # Combine: priority first, then standard up to limit
+            combined_lines = priority_lines + standard_lines[: max(0, limit - len(priority_lines))]
+
+            for line in combined_lines:
                 parts = line.split(";", 1)
                 h = parts[0].strip()
                 desc = parts[1].strip() if len(parts) > 1 else "Malware artifact"
 
-                # Identify hash type by length
                 h_type = None
                 if len(h) == 32:
                     h_type = "MD5"
@@ -205,14 +294,26 @@ def fetch_malware_hashes(limit: int = 800) -> List[Dict[str, Any]]:
                     h_type = "SHA256"
 
                 if h_type:
+                    # Give detailed context for Cobalt Strike and Coinminer
+                    context = f"Known malware sample ({desc})"
+                    src_name = "Signature-Base Malware Hashes"
+                    lower_desc = desc.lower()
+
+                    if any(k in lower_desc for k in ["cobalt", "beacon", "strike"]):
+                        context = f"Cobalt Strike Beacon payload hash ({desc})"
+                        src_name = "Cobalt Strike Beacon Signatures"
+                    elif any(k in lower_desc for k in ["xmrig", "miner", "monero", "kinsing"]):
+                        context = f"Coinminer / XMRig cryptojacking binary ({desc})"
+                        src_name = "Coinminer Malware Hashes"
+
                     items.append({
                         "id": f"hash-{h[:16]}",
                         "ioc_type": h_type,
                         "value": h,
                         "source_id": "signature_hashes",
-                        "source_name": "Signature-Base Malware Hashes",
-                        "threat_context": f"Known malware sample ({desc})",
-                        "confidence": "High",
+                        "source_name": src_name,
+                        "threat_context": context,
+                        "confidence": "Critical" if "cobalt" in context.lower() or "coinminer" in context.lower() else "High",
                         "first_seen": "Florian Roth Signature-Base",
                         "badge_color": "rose",
                     })
@@ -260,8 +361,13 @@ def get_live_ioc_feeds(
 
     if force_refresh or (now - _ioc_cache["timestamp"] > CACHE_TTL_SECONDS) or not _ioc_cache["items"]:
         all_items = []
+        # Priority 1: Cobalt Strike & Coinminer feeds
+        all_items.extend(fetch_cobalt_strike_c2(limit=500))
+        all_items.extend(fetch_coinminer_pools(limit=800))
+
+        # Priority 2: General threat feeds
+        all_items.extend(fetch_malware_hashes(limit=1200))
         all_items.extend(fetch_ipsum(limit=1500))
-        all_items.extend(fetch_malware_hashes(limit=800))
         all_items.extend(fetch_c2_domains(limit=800))
         all_items.extend(fetch_emerging_threats(limit=500))
         all_items.extend(fetch_openphish(limit=300))
@@ -367,7 +473,7 @@ def import_feed_ioc_to_db(
     }
 
 
-def bulk_import_live_iocs_to_db(db: Session, limit: int = 2500) -> Dict[str, Any]:
+def bulk_import_live_iocs_to_db(db: Session, limit: int = 5000) -> Dict[str, Any]:
     """Imports a large batch of authentic live CTI indicators directly into SQLite tip.db."""
     feed_data = get_live_ioc_feeds(force_refresh=True)
     items = feed_data.get("items", [])[:limit]
@@ -375,7 +481,6 @@ def bulk_import_live_iocs_to_db(db: Session, limit: int = 2500) -> Dict[str, Any
     created = 0
     duplicate = 0
 
-    # Batch process for high performance
     for item in items:
         res = import_feed_ioc_to_db(
             db=db,
