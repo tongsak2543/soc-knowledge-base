@@ -10,6 +10,7 @@ import {
   Edit,
   Eye,
   Crosshair,
+  Zap,
 } from 'lucide-react'
 import { IOC_TYPES } from '../types'
 import type { IOCListItem, IOCDetail } from '../types'
@@ -48,6 +49,8 @@ export const IOCPage: React.FC<IOCPageProps> = ({
 
   // Copy feedback
   const [copiedId, setCopiedId] = useState<number | null>(null)
+  const [isIngesting, setIsIngesting] = useState(false)
+  const [ingestBanner, setIngestBanner] = useState<string | null>(null)
 
   useEffect(() => {
     loadIOCs()
@@ -67,12 +70,27 @@ export const IOCPage: React.FC<IOCPageProps> = ({
       const data = await api.getIOCs({
         q: searchQuery.trim() || undefined,
         ioc_type: selectedType || undefined,
+        limit: 500,
       })
       setIocs(data)
     } catch (err: any) {
       setError(err.message || 'Failed to load IOC repository.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleBulkIngest = async () => {
+    try {
+      setIsIngesting(true)
+      const res = await api.bulkImportLiveIOCs(100)
+      setIngestBanner(res.message)
+      await loadIOCs()
+      setTimeout(() => setIngestBanner(null), 5000)
+    } catch (err: any) {
+      alert(`Ingest failed: ${err.message}`)
+    } finally {
+      setIsIngesting(false)
     }
   }
 
@@ -132,17 +150,39 @@ export const IOCPage: React.FC<IOCPageProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <LanguageToggle />
           <button
+            onClick={handleBulkIngest}
+            disabled={isIngesting}
+            className="flex items-center justify-center gap-2 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-sm font-semibold shadow-md shadow-emerald-950 transition-all disabled:opacity-50"
+            title="Ingest real-time IOCs from OpenPhish, Proofpoint ET, abuse.ch Feodo Tracker, Blocklist.de"
+          >
+            <Zap className={`w-4 h-4 ${isIngesting ? 'animate-spin' : 'text-amber-300'}`} />
+            <span>{isIngesting ? t('ingestingLiveIocs') : t('ingestLiveIocsBtn')}</span>
+          </button>
+          <button
             onClick={handleStartCreate}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-semibold shadow-lg shadow-cyan-950 transition-all hover:shadow-cyan-800/40"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-semibold shadow-lg shadow-cyan-950 transition-all hover:shadow-cyan-800/40"
           >
             <Plus className="w-4 h-4" />
             <span>{t('addNewIoc')}</span>
           </button>
         </div>
       </div>
+
+      {/* Bulk Ingest Success Banner */}
+      {ingestBanner && (
+        <div className="p-3.5 bg-emerald-950/60 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center justify-between animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-400" />
+            <span>{ingestBanner}</span>
+          </div>
+          <button onClick={() => setIngestBanner(null)} className="text-emerald-400 hover:text-white text-xs">
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Search and Filters Bar */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm backdrop-blur">

@@ -295,6 +295,25 @@ export interface FeedSource {
   badge_color: string
 }
 
+export interface LiveFeedIOCItem {
+  id: string
+  ioc_type: IOCType
+  value: string
+  source_id: string
+  source_name: string
+  threat_context: string
+  confidence: string
+  first_seen: string
+  badge_color: string
+}
+
+export interface LiveIOCFeedResponse {
+  sources: FeedSource[]
+  total_count: number
+  fetched_at: string
+  items: LiveFeedIOCItem[]
+}
+
 export interface FeedResponse {
   sources: FeedSource[]
   total: number

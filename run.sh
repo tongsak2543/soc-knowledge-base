@@ -5,7 +5,7 @@
 
 # Determine project root directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKEND_DIR="$SCRIPT_DIR/backend"
+BACKEND_DIR="$SCRIPT_DIR/backend
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 
 # Text Colors
@@ -96,3 +96,4 @@ echo -e "${YELLOW}Press [Ctrl + C] anytime to stop all servers.${NC}\n"
 
 # Keep script running to monitor background jobs
 wait $BACKEND_PID $FRONTEND_PID
+

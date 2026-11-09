@@ -162,6 +162,15 @@ export const translations = {
     detectedIocs: 'Detected Indicators (IOCs)',
     noFeedsFound: 'No Threat News Found',
     noFeedsFoundDesc: 'Try adjusting your search query or selecting a different news source.',
+    tabThreatNews: '📰 Threat News Feeds',
+    tabLiveIocs: '🎯 Live IOC Stream (400+)',
+    ingestLiveIocsBtn: '⚡ Ingest 100+ Live IOCs',
+    ingestingLiveIocs: 'Ingesting Live CTI Feeds...',
+    ingestSuccess: 'Successfully ingested live indicators!',
+    importIocBtn: 'Import to Repository',
+    importedSuccess: 'Imported',
+    liveIocFeedDesc: 'Real-time indicators streamed directly from abuse.ch Feodo Tracker, OpenPhish, Proofpoint Emerging Threats, and Blocklist.de',
+    confidenceLevel: 'Confidence',
 
     // Dashboard
     dashboardTitle: 'SOC Investigation Dashboard',
@@ -369,6 +378,15 @@ export const translations = {
     detectedIocs: 'IOCs ที่ตรวจพบในข่าว',
     noFeedsFound: 'ไม่พบข่าวภัยคุกคาม',
     noFeedsFoundDesc: 'ลองเปลี่ยนคำค้นหา หรือเลือกตัวกรองแหล่งข่าวอื่น',
+    tabThreatNews: '📰 ข่าวกรองภัยคุกคาม (News)',
+    tabLiveIocs: '🎯 สตรีม IOC สด (400+ ตัว)',
+    ingestLiveIocsBtn: '⚡ นำเข้า IOC สด 100+ ตัว',
+    ingestingLiveIocs: 'กำลังดึง IOC สดจาก CTI...',
+    ingestSuccess: 'นำเข้า IOC สดเข้าคลังสำเร็จ!',
+    importIocBtn: 'นำเข้าคลัง IOC',
+    importedSuccess: 'นำเข้าสำเร็จแล้ว',
+    liveIocFeedDesc: 'ตัวบ่งชี้แบบเรียลไทม์ ดึงตรงจาก abuse.ch Feodo Tracker, OpenPhish, Proofpoint Emerging Threats และ Blocklist.de',
+    confidenceLevel: 'ระดับความน่าเชื่อถือ',
 
     // Dashboard
     dashboardTitle: 'แดชบอร์ดสรุปผลการสอบสวน (SOC Investigation Dashboard)',

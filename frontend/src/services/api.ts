@@ -209,6 +209,44 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  // Live IOC Feeds (abuse.ch Feodo Tracker, OpenPhish, Proofpoint ET, Blocklist.de)
+  getLiveIOCFeeds: (params?: { q?: string; source_id?: string; ioc_type?: string; refresh?: boolean }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.q) searchParams.set('q', params.q)
+    if (params?.source_id) searchParams.set('source_id', params.source_id)
+    if (params?.ioc_type) searchParams.set('ioc_type', params.ioc_type)
+    if (params?.refresh) searchParams.set('refresh', 'true')
+    const queryStr = searchParams.toString()
+    return request<{
+      sources: Array<{ id: string; name: string; website: string; badge_color: string }>
+      total_count: number
+      fetched_at: string
+      items: Array<{
+        id: string
+        ioc_type: any
+        value: string
+        source_id: string
+        source_name: string
+        threat_context: string
+        confidence: string
+        first_seen: string
+        badge_color: string
+      }>
+    }>(`/feeds/iocs${queryStr ? `?${queryStr}` : ''}`)
+  },
+
+  importFeedIOC: (payload: { ioc_type: string; value: string; description: string; case_ids?: number[] }) =>
+    request<{ status: string; message: string; ioc_id: number; is_new: boolean }>('/feeds/iocs/import', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  bulkImportLiveIOCs: (limit: number = 100) =>
+    request<{ status: string; total_processed: number; created_count: number; duplicate_count: number; message: string }>(
+      `/feeds/iocs/bulk-import?limit=${limit}`,
+      { method: 'POST' }
+    ),
+
   // Demo Data & Management
   seedDemoData: (force: boolean = false) =>
     request<{ status: string; message: string; seeded_cases: number; seeded_iocs: number }>(

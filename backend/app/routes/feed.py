@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.case import Case
 from app.models.ioc import IOC
-from app.services import feed_service
+from app.services import feed_service, ioc_feed_service
 from app.services.validator import validate_and_normalize_ioc
 from datetime import datetime, timezone
 
@@ -20,6 +20,66 @@ class ConvertFeedToCaseRequest(BaseModel):
     category: str
     severity: str
     extracted_iocs: Optional[List[dict]] = None
+
+
+class ImportFeedIOCRequest(BaseModel):
+    ioc_type: str
+    value: str
+    description: str
+    case_ids: Optional[List[int]] = None
+
+
+@router.get("/iocs")
+def get_live_ioc_feeds(
+    q: Optional[str] = Query(None, description="Search keyword in indicator value or context"),
+    source_id: Optional[str] = Query(None, description="Filter by source ID: feodo, openphish, et_compromised, blocklist_de"),
+    ioc_type: Optional[str] = Query(None, description="Filter by IOC type: IPv4, URL"),
+    refresh: bool = Query(False, description="Force re-fetch IOC feeds bypassing cache"),
+):
+    """
+    Fetches real-time Indicators of Compromise (IOC) streams directly from
+    authentic CTI feeds: abuse.ch Feodo Tracker, OpenPhish, Proofpoint Emerging Threats,
+    and Blocklist.de.
+    """
+    return ioc_feed_service.get_live_ioc_feeds(
+        force_refresh=refresh,
+        source_id=source_id,
+        ioc_type=ioc_type,
+        q=q,
+    )
+
+
+@router.post("/iocs/import", status_code=status.HTTP_201_CREATED)
+def import_feed_ioc_to_repository(
+    payload: ImportFeedIOCRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Imports a live feed indicator directly into the internal SQLite IOC repository
+    and optionally associates it with one or more historical cases.
+    """
+    result = ioc_feed_service.import_feed_ioc_to_db(
+        db=db,
+        ioc_type=payload.ioc_type,
+        value=payload.value,
+        description=payload.description,
+        case_ids=payload.case_ids,
+    )
+    if result.get("status") == "error":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.get("message"))
+    return result
+
+
+@router.post("/iocs/bulk-import", status_code=status.HTTP_201_CREATED)
+def bulk_import_live_feed_iocs(
+    limit: int = Query(100, ge=10, le=500, description="Number of live feed IOCs to ingest"),
+    db: Session = Depends(get_db),
+):
+    """
+    Ingests a live stream of authentic, high-confidence IOCs (OpenPhish, Feodo Tracker,
+    Emerging Threats, Blocklist.de) directly into the internal SQLite database (tip.db).
+    """
+    return ioc_feed_service.bulk_import_live_iocs_to_db(db=db, limit=limit)
 
 
 @router.get("")
