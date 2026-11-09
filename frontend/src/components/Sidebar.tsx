@@ -6,12 +6,13 @@ import {
   LayoutDashboard,
   ExternalLink,
   Shield,
+  Terminal,
   Database,
 } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 import { LanguageToggle } from './LanguageToggle'
 
-export type TabType = 'iocs' | 'wazuh' | 'cases' | 'dashboard'
+export type TabType = 'iocs' | 'wazuh' | 'api-test' | 'cases' | 'dashboard'
 
 interface SidebarProps {
   activeTab: TabType
@@ -92,6 +93,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <Shield className="w-4 h-4 text-emerald-400" />
             <span>{t('navWazuh')}</span>
+          </button>
+
+          {/* 3. API Test Console */}
+          <button
+            onClick={() => setActiveTab('api-test')}
+            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'api-test'
+                ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <Terminal className="w-4 h-4 text-purple-400" />
+            <span>{t('navApiTest')}</span>
           </button>
 
           {/* 3. Case Knowledge Base */}

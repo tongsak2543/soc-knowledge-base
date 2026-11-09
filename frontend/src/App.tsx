@@ -2,6 +2,7 @@ import React, { useState, Component, type ReactNode } from 'react'
 import { Sidebar, type TabType } from './components/Sidebar'
 import { IOCPage } from './pages/IOCPage'
 import { WazuhPage } from './pages/WazuhPage'
+import { ApiTestPage } from './pages/ApiTestPage'
 import { CasePage } from './pages/CasePage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LanguageProvider } from './context/LanguageContext'
@@ -99,6 +100,10 @@ const AppContent: React.FC = () => {
 
         {activeTab === 'wazuh' && (
           <WazuhPage />
+        )}
+
+        {activeTab === 'api-test' && (
+          <ApiTestPage />
         )}
 
         {activeTab === 'cases' && (
