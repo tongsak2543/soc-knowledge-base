@@ -357,16 +357,19 @@ def _lookup_indicator(val: str, db: Session) -> Dict[str, Any]:
             threat_cat = "Cobalt Strike C2 / Beacon"
         elif "miner" in desc or "monero" in desc or "xmrig" in desc:
             threat_cat = "Cryptocurrency Miner (XMRig)"
+        elif "php2shell" in desc or "cve-2026-109618" in desc or "cve-2026-109619" in desc or "webshell" in desc:
+            threat_cat = "PHP2Shell RCE / WebShell (CVE-2026-109618)"
         elif "botnet" in desc or "feodo" in desc:
             threat_cat = "Botnet C2 Server"
         elif "phish" in desc:
             threat_cat = "Phishing Infrastructure"
 
+        is_critical = any(c.severity == "Critical" for c in core.cases) or "cobalt" in desc or "php2shell" in desc
         return {
             "indicator": raw_val,
             "malicious": True,
             "ioc_type": core.ioc_type,
-            "severity": "CRITICAL" if any(c.severity == "Critical" for c in core.cases) or "cobalt" in desc else "HIGH",
+            "severity": "CRITICAL" if is_critical else "HIGH",
             "threat_category": threat_cat,
             "threat_context": core.description,
             "action": "BLOCK",
@@ -393,12 +396,15 @@ def _lookup_indicator(val: str, db: Session) -> Dict[str, Any]:
             threat_cat = "Cobalt Strike C2 / Beacon"
         elif "miner" in desc or "monero" in desc or "xmrig" in desc:
             threat_cat = "Cryptocurrency Miner (XMRig)"
+        elif "php2shell" in desc or "cve-2026-109618" in desc or "cve-2026-109619" in desc:
+            threat_cat = "PHP2Shell RCE / WebShell (CVE-2026-109618)"
 
+        is_critical = "cobalt" in desc or "php2shell" in desc
         return {
             "indicator": raw_val,
             "malicious": True,
             "ioc_type": feed.ioc_type,
-            "severity": "CRITICAL" if "cobalt" in desc else "HIGH",
+            "severity": "CRITICAL" if is_critical else "HIGH",
             "threat_category": threat_cat,
             "threat_context": feed.threat_context,
             "action": "BLOCK",

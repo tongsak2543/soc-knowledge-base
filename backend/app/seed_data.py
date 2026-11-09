@@ -225,6 +225,82 @@ DEMO_CASES = [
             },
         ],
     },
+    {
+        "case_id": "CASE-2026-001",
+        "title": "[DEMO] PHP2Shell Core RCE (CVE-2026-109618 / CVE-2026-109619) & WebShell Infiltration",
+        "summary": "Adversary targeted public web tier exploiting unauthenticated core PHP use-after-free and multipart session upload progress vulnerabilities to spawn persistent reverse shells and drop secondary staging tools.",
+        "category": "Zero-Day Exploit",
+        "severity": "Critical",
+        "status": "Contained",
+        "investigation_findings": (
+            "- High-volume malformed multipart/form-data POST requests observed targeting PHP-FPM workers.\n"
+            "- Exploitation triggered memory exhaustion and Use-After-Free (UAF) condition before userland application authentication.\n"
+            "- Web worker www-data spawned unexpected child process /bin/sh connecting to external C2.\n"
+            "- Staged payload dropped at /tmp/nfs-setup and persistent backdoor injected into session storage."
+        ),
+        "observed_behavior": (
+            "Attacker abused session.upload_progress to poison session files with serialized payload. "
+            "Spawned interactive reverse shell to 92.118.112.100. "
+            "Downloaded secondary payload from hxxp://92.118.112[.]100/nfs-setup and attempted privilege escalation."
+        ),
+        "investigation_method": (
+            "1. Web server error logs analysis showing repetitive PHP Fatal error: Out of memory and SIGSEGV worker crashes.\n"
+            "2. Sysmon for Linux / Auditd event logs inspection showing nginx/php-fpm spawning /bin/sh.\n"
+            "3. Deep inspection of /var/lib/php/sessions/ for corrupted serialized objects and injected shellcode.\n"
+            "4. Network packet analysis identifying multipart/form-data headers abusing session upload progress."
+        ),
+        "root_cause": (
+            "Unpatched PHP core runtime vulnerable to unauthenticated Use-After-Free (CVE-2026-109618) and memory cleanup flaws (CVE-2026-109619)."
+        ),
+        "remediation": (
+            "- Immediately upgraded PHP core runtime to patched releases (PHP 8.5.12, 8.4.27, 8.3.36, 8.2.35).\n"
+            "- Killed all compromised PHP-FPM worker processes and flushed session directory /var/lib/php/sessions/.\n"
+            "- Applied WAF virtual patching rules to inspect anomalous multipart POST boundaries.\n"
+            "- Blocked all known PHP2Shell scanner IPs and staging domains across perimeter firewalls."
+        ),
+        "conclusion": (
+            "Host isolated and sanitized within 45 minutes of initial beaconing. PHP runtime patched and WAF rules enforced."
+        ),
+        "tags": "php2shell, cve-2026-109618, cve-2026-109619, webshell, reverse-shell, rce, session-upload-progress",
+        "days_ago": 1,
+        "iocs": [
+            {
+                "ioc_type": "IPv4",
+                "value": "92.118.112.100",
+                "description": "PHP2Shell exploit scanner & nfs-setup payload dropper",
+            },
+            {
+                "ioc_type": "IPv4",
+                "value": "194.26.192.83",
+                "description": "Active mass scanner attempting PHP2Shell UAF memory disclosure",
+            },
+            {
+                "ioc_type": "Domain",
+                "value": "botlesscucks.st",
+                "description": "PHP2Shell C2 & scanner orchestration domain",
+            },
+            {
+                "ioc_type": "Domain",
+                "value": "checkphp2shell.com",
+                "description": "Adversary verification infrastructure for vulnerable PHP targets",
+            },
+            {
+                "ioc_type": "SHA256",
+                "value": "e2529d4afa39ae4db2eb05d5176317c906289abf09660c75bdeec43e54c55aa3",
+                "description": "PHP2Shell staged dropper payload",
+            },
+            {
+                "ioc_type": "SHA256",
+                "value": "0c5486f06620e26e316f4b33f318b0d646d5e1133789331aa2fed012360d1486",
+                "description": "PHP2Shell reverse shell payload artifact",
+            },
+            {
+                "ioc_type": "URL",
+                "value": "http://92.118.112.100/nfs-setup",
+                "description": "Active staging URL for secondary PHP2Shell payload",
+            },
+        ],
+    },
 ]
 
 

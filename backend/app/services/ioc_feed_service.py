@@ -74,6 +74,14 @@ IOC_FEED_SOURCES = [
         "badge_color": "rose",
         "website": "https://feodotracker.abuse.ch",
     },
+    {
+        "id": "php2shell",
+        "name": "PHP2Shell RCE & WebShell Tracker",
+        "type": "All",
+        "description": "Active PHP2Shell (CVE-2026-109618 / CVE-2026-109619) exploit scanners, staging C2s, and WebShell hashes",
+        "badge_color": "rose",
+        "website": "https://github.com/naravid19/php2shell-ioc",
+    },
 ]
 
 # Cache structure
@@ -349,6 +357,82 @@ def fetch_c2_domains(limit: int = 800) -> List[Dict[str, Any]]:
     return items
 
 
+def fetch_php2shell_iocs(limit: int = 500) -> List[Dict[str, Any]]:
+    """
+    Fetches real-world PHP2Shell (CVE-2026-109618 / CVE-2026-109619) exploit scanners,
+    staging infrastructure, C2 domains, and WebShell payload hashes from naravid19/php2shell-ioc.
+    Includes robust offline fallback.
+    """
+    items = []
+    url = "https://raw.githubusercontent.com/naravid19/php2shell-ioc/main/iocs/php2shell_iocs.json"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 SOC-TIP/2.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read().decode("utf-8"))
+            for entry in data[:limit]:
+                raw_type = entry.get("type", "").lower()
+                ind = entry.get("indicator", "").strip()
+                if not ind:
+                    continue
+
+                ioc_type = "IPv4"
+                if raw_type == "domain":
+                    ioc_type = "Domain"
+                elif raw_type in ["sha256", "hash"]:
+                    ioc_type = "SHA256"
+                elif raw_type == "url":
+                    ioc_type = "URL"
+                elif raw_type in ["ip", "ipv4"]:
+                    ioc_type = "IPv4"
+
+                ctx = entry.get("context") or "Active PHP2Shell exploitation & scanning infrastructure"
+                reported_by = entry.get("reported_by", "Threat Intelligence")
+                first_seen = entry.get("first_seen", "2026-10-22")
+
+                items.append({
+                    "id": f"php2shell-{abs(hash(ind))}",
+                    "ioc_type": ioc_type,
+                    "value": ind,
+                    "source_id": "php2shell",
+                    "source_name": "PHP2Shell RCE & WebShell Tracker",
+                    "threat_context": f"PHP2Shell (CVE-2026-109618 / CVE-2026-109619) - {ctx} ({reported_by})",
+                    "confidence": "Critical",
+                    "first_seen": first_seen,
+                    "badge_color": "rose",
+                })
+    except Exception as e:
+        print(f"Error fetching live PHP2Shell feed: {e}")
+
+    # Fallback if empty or offline
+    if not items:
+        fallback_data = [
+            ("IPv4", "92.118.112.100", "PHP2Shell exploit scanner & nfs-setup payload dropper"),
+            ("IPv4", "194.26.192.83", "Active mass scanner attempting PHP2Shell UAF memory disclosure"),
+            ("IPv4", "45.154.255.94", "PHP2Shell multipart/form-data exploit attempt node"),
+            ("IPv4", "185.196.220.37", "Automated PHP session upload progress exploit probe"),
+            ("IPv4", "193.142.146.168", "PHP2Shell unauthenticated RCE staging IP"),
+            ("Domain", "botlesscucks.st", "PHP2Shell C2 & scanner orchestration domain"),
+            ("Domain", "checkphp2shell.com", "Adversary verification infrastructure for vulnerable PHP targets"),
+            ("Domain", "ashevilleroofingcontractor.com", "Compromised host hosting PHP2Shell payload staging"),
+            ("SHA256", "e2529d4afa39ae4db2eb05d5176317c906289abf09660c75bdeec43e54c55aa3", "PHP2Shell staged dropper payload"),
+            ("SHA256", "0c5486f06620e26e316f4b33f318b0d646d5e1133789331aa2fed012360d1486", "PHP2Shell reverse shell payload artifact"),
+            ("URL", "http://92.118.112.100/nfs-setup", "Active staging URL for secondary PHP2Shell payload"),
+        ]
+        for t, v, c in fallback_data:
+            items.append({
+                "id": f"php2shell-{abs(hash(v))}",
+                "ioc_type": t,
+                "value": v,
+                "source_id": "php2shell",
+                "source_name": "PHP2Shell RCE & WebShell Tracker",
+                "threat_context": f"PHP2Shell (CVE-2026-109618 / CVE-2026-109619) - {c}",
+                "confidence": "Critical",
+                "first_seen": "2026-10-22",
+                "badge_color": "rose",
+            })
+    return items
+
+
 def get_live_ioc_feeds(
     force_refresh: bool = False,
     source_id: Optional[str] = None,
@@ -361,9 +445,10 @@ def get_live_ioc_feeds(
 
     if force_refresh or (now - _ioc_cache["timestamp"] > CACHE_TTL_SECONDS) or not _ioc_cache["items"]:
         all_items = []
-        # Priority 1: Cobalt Strike & Coinminer feeds
+        # Priority 1: High-threat focus feeds (Cobalt Strike, Coinminer, PHP2Shell)
         all_items.extend(fetch_cobalt_strike_c2(limit=500))
         all_items.extend(fetch_coinminer_pools(limit=800))
+        all_items.extend(fetch_php2shell_iocs(limit=500))
 
         # Priority 2: General threat feeds
         all_items.extend(fetch_malware_hashes(limit=1200))

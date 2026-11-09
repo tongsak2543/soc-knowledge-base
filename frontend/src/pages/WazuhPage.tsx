@@ -227,7 +227,7 @@ tail -f /var/ossec/logs/integrations.log`
           <div className="text-2xl font-bold text-cyan-400 font-mono mt-1">
             {loading ? '...' : (stats?.wazuh_cdb_ready_ips ?? 0).toLocaleString()}
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5">Cobalt Strike, Botnets & Scanners</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">Cobalt Strike, PHP2Shell & Scanners</div>
         </div>
 
         <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 shadow-sm">
@@ -243,7 +243,7 @@ tail -f /var/ossec/logs/integrations.log`
           <div className="text-2xl font-bold text-rose-400 font-mono mt-1">
             {loading ? '...' : (stats?.wazuh_ready_hashes ?? 0).toLocaleString()}
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5">Cobalt Strike Beacons & Miners</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">Cobalt Strike, PHP2Shell & Miners</div>
         </div>
 
         <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 shadow-sm">
@@ -797,6 +797,13 @@ curl -s http://${ctiServerIp}:8000/api/wazuh/lists/ips.cdb -o /var/ossec/etc/lis
           <span>{isTh ? 'ตัวอย่างทดสอบ:' : 'Quick tests:'}</span>
           <button
             type="button"
+            onClick={() => setTestValue('92.118.112.100')}
+            className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-rose-300 rounded font-mono text-[10px]"
+          >
+            92.118.112.100 (PHP2Shell Scanner)
+          </button>
+          <button
+            type="button"
             onClick={() => setTestValue('1.117.74.144')}
             className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-rose-300 rounded font-mono text-[10px]"
           >
@@ -811,10 +818,10 @@ curl -s http://${ctiServerIp}:8000/api/wazuh/lists/ips.cdb -o /var/ossec/etc/lis
           </button>
           <button
             type="button"
-            onClick={() => setTestValue('50.16.16.211')}
-            className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded font-mono text-[10px]"
+            onClick={() => setTestValue('checkphp2shell.com')}
+            className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-purple-300 rounded font-mono text-[10px]"
           >
-            50.16.16.211 (Scanner)
+            checkphp2shell.com (PHP2Shell Domain)
           </button>
         </div>
 
@@ -853,14 +860,14 @@ curl -s http://${ctiServerIp}:8000/api/wazuh/lists/ips.cdb -o /var/ossec/etc/lis
         )}
       </div>
 
-      {/* Specialized Rules: Coinminer & Cobalt Strike */}
+      {/* Specialized Rules: Coinminer, Cobalt Strike & PHP2Shell */}
       <div className="bg-slate-900/80 border border-amber-500/30 rounded-xl p-5 space-y-4 shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
               <Shield className="w-4 h-4 text-amber-400" />
-              {isTh ? '🛡️ กฎตรวจจับ Coinminer & Cobalt Strike พิเศษสำหรับองค์กร (Custom Wazuh Rules)' : 'Specialized Coinminer & Cobalt Strike Detection Rules'}
+              {isTh ? '🛡️ กฎตรวจจับ Coinminer, Cobalt Strike & PHP2Shell WebShell พิเศษ (Custom Wazuh Rules)' : 'Specialized Coinminer, Cobalt Strike & PHP2Shell Detection Rules'}
             </h2>
           </div>
           <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800/50">
@@ -870,16 +877,16 @@ curl -s http://${ctiServerIp}:8000/api/wazuh/lists/ips.cdb -o /var/ossec/etc/lis
 
         <p className="text-xs text-slate-300">
           {isTh
-            ? 'คัดลอก XML ด้านล่างนี้ไปวางไว้ใน /var/ossec/etc/rules/local_rules.xml บนเครื่อง Wazuh เพื่อตรวจจับการขุดเหรียญ (XMRig/Stratum) และ Cobalt Strike Beacon ทันทีที่เครื่องลูกข่ายเริ่มขยับตัว'
-            : 'Copy and paste the XML below into /var/ossec/etc/rules/local_rules.xml on Wazuh Manager to catch Coinminers and Cobalt Strike Beacons immediately.'}
+            ? 'คัดลอก XML ด้านล่างนี้ไปวางไว้ใน /var/ossec/etc/rules/local_rules.xml บนเครื่อง Wazuh เพื่อตรวจจับการขุดเหรียญ, Cobalt Strike Beacon และการเจาะระบบด้วย PHP2Shell (CVE-2026-109618 / CVE-2026-109619) ทันที'
+            : 'Copy and paste the XML below into /var/ossec/etc/rules/local_rules.xml on Wazuh Manager to catch Coinminers, Cobalt Strike, and PHP2Shell WebShells immediately.'}
         </p>
 
         <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-slate-300 font-mono text-xs overflow-x-auto space-y-3">
           <div className="flex items-center justify-between text-slate-500 border-b border-slate-800 pb-1.5">
             <span>local_rules.xml</span>
             <button
-              onClick={() => copyToClipboard(`<!-- Coinminer & Cobalt Strike Detection Group -->
-<group name="coinminer,cobalt_strike,cti_intel,">
+              onClick={() => copyToClipboard(`<!-- Coinminer, Cobalt Strike & PHP2Shell Detection Group -->
+<group name="coinminer,cobalt_strike,php2shell,cti_intel,">
 
   <!-- 1. Coinminer: Outbound traffic to Monero / XMRig Mining Pool Domains -->
   <rule id="100400" level="13">
@@ -924,6 +931,29 @@ curl -s http://${ctiServerIp}:8000/api/wazuh/lists/ips.cdb -o /var/ossec/etc/lis
     <list field="data.win.eventdata.hashes" lookup="match_key">etc/lists/malicious_hashes</list>
     <description>CRITICAL ALERT: File hash matches confirmed Cobalt Strike Beacon artifact</description>
     <mitre><id>T1059</id><id>T1055</id></mitre>
+  </rule>
+
+  <!-- 7. PHP2Shell (CVE-2026-109618): Traffic from known exploit scanner or staging IP -->
+  <rule id="100420" level="14">
+    <list field="srcip" lookup="address_match_key">etc/lists/malicious_ips</list>
+    <description>ALERT CRITICAL: Inbound exploit attempt from confirmed PHP2Shell scanner $(srcip)</description>
+    <mitre><id>T1190</id><id>T1059</id></mitre>
+  </rule>
+
+  <!-- 8. PHP2Shell WebShell: PHP-FPM / Apache worker spawning interactive shell -->
+  <rule id="100421" level="14">
+    <if_group>sysmon_process_create</if_group>
+    <match>php-fpm|apache2|httpd|nginx</match>
+    <regex>\/bin\/sh|\/bin\/bash|cmd\.exe|powershell</regex>
+    <description>CRITICAL WEBSHELL EXECUTION: Web server worker process spawned interactive shell (Possible PHP2Shell RCE)</description>
+    <mitre><id>T1505.003</id><id>T1059.004</id></mitre>
+  </rule>
+
+  <!-- 9. PHP2Shell WebShell Payload Hash Match -->
+  <rule id="100422" level="14">
+    <list field="data.win.eventdata.hashes" lookup="match_key">etc/lists/malicious_hashes</list>
+    <description>CRITICAL ALERT: File hash matches confirmed PHP2Shell reverse shell payload artifact</description>
+    <mitre><id>T1505.003</id></mitre>
   </rule>
 
 </group>`, 'custom_rules')}
@@ -974,6 +1004,28 @@ curl -s http://${ctiServerIp}:8000/api/wazuh/lists/ips.cdb -o /var/ossec/etc/lis
   <list field="data.win.eventdata.hashes" lookup="match_key">etc/lists/malicious_hashes</list>
   <description>CRITICAL ALERT: File hash matches confirmed Cobalt Strike Beacon payload</description>
   <mitre><id>T1059</id><id>T1055</id></mitre>
+</rule>
+
+<!-- 7. ตรวจจับ Inbound Traffic จาก PHP2Shell Scanner / Exploit Staging IP (290+ รายการ) -->
+<rule id="100420" level="14">
+  <list field="srcip" lookup="address_match_key">etc/lists/malicious_ips</list>
+  <description>CRITICAL PHP2SHELL: Inbound exploit attempt from confirmed scanner $(srcip)</description>
+  <mitre><id>T1190</id><id>T1059</id></mitre>
+</rule>
+
+<!-- 8. ตรวจจับ PHP Worker Process แอบ Spawn Interactive Shell (/bin/sh, bash) -->
+<rule id="100421" level="14">
+  <match>php-fpm|apache2|httpd|nginx</match>
+  <regex>\/bin\/sh|\/bin\/bash|cmd\.exe|powershell</regex>
+  <description>CRITICAL WEBSHELL EXECUTION: Web server worker process spawned interactive shell</description>
+  <mitre><id>T1505.003</id><id>T1059.004</id></mitre>
+</rule>
+
+<!-- 9. ตรวจจับแฮชไฟล์ Reverse Shell / Payload ของ PHP2Shell (SHA256) -->
+<rule id="100422" level="14">
+  <list field="data.win.eventdata.hashes" lookup="match_key">etc/lists/malicious_hashes</list>
+  <description>CRITICAL ALERT: File hash matches confirmed PHP2Shell reverse shell payload</description>
+  <mitre><id>T1505.003</id></mitre>
 </rule>`}</pre>
         </div>
       </div>
