@@ -188,6 +188,89 @@ export const WazuhPage: React.FC = () => {
 
       {/* Main Sections: Export Endpoints & Interactive Matcher */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Direct Wazuh REST APIs */}
+        <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-emerald-400" />
+              {isTh ? 'Wazuh Direct REST APIs (เชื่อมต่อ API โดยตรง)' : 'Wazuh Direct REST APIs'}
+            </h2>
+            <span className="text-[11px] font-mono text-emerald-400 font-bold">LIVE JSON</span>
+          </div>
+
+          <p className="text-xs text-slate-400">
+            {isTh
+              ? 'Wazuh สามารถเรียก API นี้ได้โดยตรงทั้งแบบ Real-time Query ผ่าน Python/Bash และแบบรับ Alert Webhook อัตโนมัติ'
+              : 'Wazuh can query these REST APIs directly via Active Response scripts or the Wazuh Integrator daemon.'}
+          </p>
+
+          <div className="space-y-3">
+            {/* 1. Single Check */}
+            <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-lg flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-white flex items-center gap-2">
+                  <span className="px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-400 font-mono text-[10px]">GET</span>
+                  <span>/api/wazuh/ioc/check?value=...</span>
+                </div>
+                <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                  {isTh ? 'ตรวจสอบ IP/Domain/Hash ทันที คืนผล JSON: malicious, category, action' : 'Instant verdict lookup for IP, Domain, or Hash'}
+                </div>
+              </div>
+              <button
+                onClick={() => copyToClipboard(`${backendBase}/api/wazuh/ioc/check?value=1.117.74.144`, 'check_api')}
+                className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors shrink-0"
+                title="Copy API URL"
+              >
+                {copiedKey === 'check_api' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+
+            {/* 2. Webhook Alert */}
+            <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-lg flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-white flex items-center gap-2">
+                  <span className="px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-400 font-mono text-[10px]">POST</span>
+                  <span>/api/wazuh/webhook/alert</span>
+                </div>
+                <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                  {isTh ? 'รับ JSON Alert จาก Wazuh Integrator แล้วสแกนเทียบ IOC อัตโนมัติ' : 'Receives raw Wazuh alerts and automatically matches IOCs'}
+                </div>
+              </div>
+              <button
+                onClick={() => copyToClipboard(`${backendBase}/api/wazuh/webhook/alert`, 'webhook_api')}
+                className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors shrink-0"
+                title="Copy Webhook URL"
+              >
+                {copiedKey === 'webhook_api' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+
+            {/* 3. Download custom-cti script */}
+            <div className="p-3 bg-slate-950/70 border border-emerald-500/30 rounded-lg flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-white flex items-center gap-2">
+                  <span>custom-cti.py</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/50 font-mono">
+                    Wazuh Daemon Script
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                  {isTh ? 'สคริปต์ Python พร้อมใช้สำหรับวางใน /var/ossec/integrations/custom-cti' : 'Ready-to-use Wazuh Integratord Python script'}
+                </div>
+              </div>
+              <a
+                href="/api/wazuh/integrator/script"
+                download="custom-cti.py"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold transition-colors shrink-0"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{isTh ? 'ดาวน์โหลดสคริปต์' : 'Download Script'}</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
         {/* Wazuh CDB Download Links */}
         <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">

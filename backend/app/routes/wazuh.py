@@ -328,3 +328,240 @@ def promote_feed_ioc(
     if result.get("status") == "error":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.get("message"))
     return result
+
+
+# =====================================================================
+# DIRECT WAZUH REST APIs (Real-time Lookup & Webhook Integration)
+# =====================================================================
+
+class BulkCheckRequest(BaseModel):
+    values: List[str]
+
+
+def _lookup_indicator(val: str, db: Session) -> Dict[str, Any]:
+    """Helper to check an indicator against both core IOCs and feed IOCs."""
+    raw_val = val.strip()
+    norm_val = raw_val.lower()
+
+    # 1. Search Core Database
+    core = (
+        db.query(IOC)
+        .filter((IOC.value == raw_val) | (IOC.normalized_value == norm_val))
+        .first()
+    )
+
+    if core:
+        desc = (core.description or "").lower()
+        threat_cat = "Malicious Indicator"
+        if "cobalt" in desc or "beacon" in desc:
+            threat_cat = "Cobalt Strike C2 / Beacon"
+        elif "miner" in desc or "monero" in desc or "xmrig" in desc:
+            threat_cat = "Cryptocurrency Miner (XMRig)"
+        elif "botnet" in desc or "feodo" in desc:
+            threat_cat = "Botnet C2 Server"
+        elif "phish" in desc:
+            threat_cat = "Phishing Infrastructure"
+
+        return {
+            "indicator": raw_val,
+            "malicious": True,
+            "ioc_type": core.ioc_type,
+            "severity": "CRITICAL" if any(c.severity == "Critical" for c in core.cases) or "cobalt" in desc else "HIGH",
+            "threat_category": threat_cat,
+            "threat_context": core.description,
+            "action": "BLOCK",
+            "confidence": core.confidence or "High",
+            "misp_category": core.misp_category,
+            "first_seen": core.created_at.isoformat() if core.created_at else None,
+            "recommendation": f"IMMEDIATE ACTION: Block indicator. Matched internal SOC {threat_cat}.",
+        }
+
+    # 2. Search Feed IOCs Staging
+    feed = (
+        db.query(FeedIOC)
+        .filter(
+            (FeedIOC.value == raw_val) | (FeedIOC.normalized_value == norm_val),
+            FeedIOC.is_active == True,
+        )
+        .first()
+    )
+
+    if feed:
+        desc = (feed.threat_context or "").lower()
+        threat_cat = "External Threat Feed"
+        if "cobalt" in desc or "beacon" in desc:
+            threat_cat = "Cobalt Strike C2 / Beacon"
+        elif "miner" in desc or "monero" in desc or "xmrig" in desc:
+            threat_cat = "Cryptocurrency Miner (XMRig)"
+
+        return {
+            "indicator": raw_val,
+            "malicious": True,
+            "ioc_type": feed.ioc_type,
+            "severity": "CRITICAL" if "cobalt" in desc else "HIGH",
+            "threat_category": threat_cat,
+            "threat_context": feed.threat_context,
+            "action": "BLOCK",
+            "source": feed.source_name,
+            "confidence": feed.confidence or "High",
+            "first_seen": feed.first_seen.isoformat() if feed.first_seen else None,
+            "recommendation": f"POTENTIAL THREAT: Flagged by {feed.source_name}. Investigate host telemetry.",
+        }
+
+    return {
+        "indicator": raw_val,
+        "malicious": False,
+        "severity": "CLEAN",
+        "action": "ALLOW",
+        "message": "Indicator not found in threat intelligence repository.",
+    }
+
+
+@router.get("/ioc/check")
+def check_single_ioc_for_wazuh(
+    value: str = Query(..., description="IP, Domain, URL, or Hash to check against CTI repository"),
+    db: Session = Depends(get_db),
+):
+    """
+    Direct REST API for Wazuh Active Response scripts, CLI, or integrations.
+    Returns instant malicious verdict and recommended containment action.
+    Example: GET /api/wazuh/ioc/check?value=1.117.74.144
+    """
+    return _lookup_indicator(val=value, db=db)
+
+
+@router.post("/ioc/check-bulk")
+def check_bulk_iocs_for_wazuh(
+    payload: BulkCheckRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Checks multiple IOCs in a single HTTP request for high-throughput Wazuh agent logs.
+    """
+    results = []
+    for val in payload.values[:100]:
+        results.append(_lookup_indicator(val=val, db=db))
+    return {
+        "total_checked": len(results),
+        "malicious_count": sum(1 for r in results if r.get("malicious")),
+        "results": results,
+    }
+
+
+@router.post("/webhook/alert")
+def wazuh_integrator_alert_webhook(
+    alert: Dict[str, Any],
+    db: Session = Depends(get_db),
+):
+    """
+    Direct webhook endpoint for Wazuh Integrator daemon (wazuh-integratord).
+    Receives raw Wazuh alert JSON, automatically parses IP addresses, hashes,
+    and domain names, and evaluates them against the 4,900+ IOC repository.
+    """
+    extracted_indicators = []
+
+    # 1. Extract Network IPs
+    data = alert.get("data", {})
+    if isinstance(data, dict):
+        if data.get("srcip"):
+            extracted_indicators.append(("srcip", data["srcip"]))
+        if data.get("dstip"):
+            extracted_indicators.append(("dstip", data["dstip"]))
+
+        # 2. Extract Sysmon fields
+        win = data.get("win", {})
+        if isinstance(win, dict):
+            eventdata = win.get("eventdata", {})
+            if isinstance(eventdata, dict):
+                # DNS query (Coinminer / C2 domains)
+                if eventdata.get("queryName"):
+                    extracted_indicators.append(("queryName", eventdata["queryName"]))
+                if eventdata.get("destinationIp"):
+                    extracted_indicators.append(("destinationIp", eventdata["destinationIp"]))
+                # Hashes
+                if eventdata.get("hashes"):
+                    # Sysmon format: MD5=xxx,SHA256=yyy
+                    for part in eventdata["hashes"].split(","):
+                        if "=" in part:
+                            extracted_indicators.append(("hash", part.split("=")[1].strip()))
+
+    # 3. Check Wazuh FIM (Syscheck)
+    syscheck = alert.get("syscheck", {})
+    if isinstance(syscheck, dict):
+        if syscheck.get("md5_after"):
+            extracted_indicators.append(("md5", syscheck["md5_after"]))
+        if syscheck.get("sha256_after"):
+            extracted_indicators.append(("sha256", syscheck["sha256_after"]))
+
+    # Scan extracted indicators against CTI
+    matches = []
+    for field_name, ind_val in extracted_indicators:
+        lookup = _lookup_indicator(val=ind_val, db=db)
+        if lookup.get("malicious"):
+            matches.append({
+                "field": field_name,
+                "value": ind_val,
+                "threat_category": lookup.get("threat_category"),
+                "threat_context": lookup.get("threat_context"),
+                "severity": lookup.get("severity"),
+                "action": lookup.get("action"),
+                "recommendation": lookup.get("recommendation"),
+            })
+
+    return {
+        "status": "analyzed",
+        "rule_id": alert.get("rule", {}).get("id"),
+        "rule_description": alert.get("rule", {}).get("description"),
+        "indicators_inspected": len(extracted_indicators),
+        "matched": len(matches) > 0,
+        "matches_count": len(matches),
+        "threats": matches,
+    }
+
+
+@router.get("/integrator/script")
+def get_wazuh_integrator_script():
+    """
+    Returns the ready-to-use Python script for /var/ossec/integrations/custom-cti
+    to forward Wazuh alerts directly into this CTI API.
+    """
+    script_content = '''#!/usr/bin/env python3
+"""
+Wazuh Integrator Daemon script for SOC CTI API
+Place this file in: /var/ossec/integrations/custom-cti
+chmod 750 /var/ossec/integrations/custom-cti
+chown root:wazuh /var/ossec/integrations/custom-cti
+"""
+import sys
+import json
+import urllib.request
+
+if len(sys.argv) < 2:
+    sys.exit(1)
+
+alert_file = sys.argv[1]
+hook_url = sys.argv[3] if len(sys.argv) > 3 else "http://127.0.0.1:8000/api/wazuh/webhook/alert"
+
+try:
+    with open(alert_file, "r") as f:
+        alert = json.load(f)
+
+    # Post alert to CTI API
+    req = urllib.request.Request(
+        hook_url,
+        data=json.dumps(alert).encode("utf-8"),
+        headers={"Content-Type": "application/json", "User-Agent": "Wazuh-Integrator"},
+    )
+    with urllib.request.urlopen(req, timeout=4) as response:
+        result = json.loads(response.read().decode("utf-8"))
+        if result.get("matched"):
+            # Threat confirmed! Print to Wazuh log
+            print(f"[CTI MATCH] Threat detected in alert {result.get('rule_id')}: {result.get('threats')}")
+except Exception as e:
+    print(f"[CTI ERROR] Failed to query CTI API: {e}", file=sys.stderr)
+'''
+    return Response(
+        content=script_content,
+        media_type="text/x-python",
+        headers={"Content-Disposition": 'attachment; filename="custom-cti.py"'},
+    )
