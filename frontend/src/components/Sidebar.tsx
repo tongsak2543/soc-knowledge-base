@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Rss,
   Trash2,
+  Database,
 } from 'lucide-react'
 import { api } from '../services/api'
 import { useLanguage } from '../context/LanguageContext'
