@@ -249,3 +249,4 @@ tail -f /var/ossec/logs/ossec.log
 - [ ] รัน `/var/ossec/bin/wazuh-makelists` สำเร็จ (มีไฟล์ `.cdb` อยู่ใน `/var/ossec/etc/lists/`)
 - [ ] ชื่อลิสต์ใน `ossec.conf` ไม่มีนามสกุล `.cdb` (เช่น `<list>etc/lists/malicious_ips</list>`)
 - [ ] รัน `systemctl restart wazuh-manager` เพื่อให้คอนฟิกมีผล
+

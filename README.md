@@ -2,7 +2,9 @@
 
 A lightweight, standalone, fully functional Knowledge Base designed specifically for internal Security Operations Center (SOC) and Digital Forensics & Incident Response (DFIR) use. It empowers analysts to record historical case investigations, search previous findings, correlate detected Indicators of Compromise (IOCs), and reuse proven investigation steps when similar incidents recur.
 
-> 🚀 **Wazuh SIEM Integration Guide**: For full production deployment instructions with Wazuh CDB Lists, Direct Webhooks, and custom detection rules for **Coinminer** & **Cobalt Strike**, read [WAZUH_INTEGRATION_GUIDE.md](file:///c:/Cti%20For%20wazuh/WAZUH_INTEGRATION_GUIDE.md).
+> 🚀 **Wazuh SIEM Integration Guides**:
+> - **[แบบต่อตรง ไม่ใช้ CDB (Direct Real-Time API)]**: อ่าน [WAZUH_DIRECT_API_GUIDE.md](file:///c:/Cti%20For%20wazuh/WAZUH_DIRECT_API_GUIDE.md) สำหรับเชื่อมต่อผ่าน Wazuh Integratord Webhook ทันที ไม่ต้องดาวน์โหลดไฟล์ ไม่ต้องคอมไพล์
+> - **[แบบ CDB List Compile]**: อ่าน [WAZUH_INTEGRATION_GUIDE.md](file:///c:/Cti%20For%20wazuh/WAZUH_INTEGRATION_GUIDE.md) สำหรับการใช้งานแบบ CDB File Lists บน Wazuh Manager
 
 ---
 
