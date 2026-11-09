@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import {
   ShieldAlert,
   Briefcase,
@@ -6,10 +6,8 @@ import {
   LayoutDashboard,
   ExternalLink,
   Shield,
-  Trash2,
   Database,
 } from 'lucide-react'
-import { api } from '../services/api'
 import { useLanguage } from '../context/LanguageContext'
 import { LanguageToggle } from './LanguageToggle'
 
@@ -24,28 +22,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
-  onDataRefreshNeeded,
 }) => {
   const { t } = useLanguage()
-  const [resetting, setResetting] = useState(false)
-  const [statusMessage, setStatusMessage] = useState<string | null>(null)
-
-  const handleResetDb = async () => {
-    if (!window.confirm(t('resetDbConfirm'))) {
-      return
-    }
-    try {
-      setResetting(true)
-      await api.resetDatabase()
-      setStatusMessage('Database cleared.')
-      onDataRefreshNeeded()
-      setTimeout(() => setStatusMessage(null), 4000)
-    } catch (err: any) {
-      setStatusMessage(`Error: ${err.message || 'Reset failed'}`)
-    } finally {
-      setResetting(false)
-    }
-  }
 
   return (
     <aside className="w-64 bg-slate-900/90 border-r border-slate-800 flex flex-col justify-between shrink-0 h-screen sticky top-0 backdrop-blur-md">
@@ -145,25 +123,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Footer Controls & System Status */}
-      <div className="p-4 border-t border-slate-800 space-y-3 bg-slate-950/20">
-        {statusMessage && (
-          <div className="p-2 text-xs font-mono rounded bg-slate-800/90 text-cyan-300 border border-slate-700">
-            {statusMessage}
-          </div>
-        )}
-
-        <div className="space-y-1.5">
-          <button
-            onClick={handleResetDb}
-            disabled={resetting}
-            className="w-full flex items-center justify-center space-x-1.5 px-3 py-1.5 text-[11px] font-mono rounded text-slate-400 hover:text-rose-400 hover:bg-rose-950/20 transition-colors disabled:opacity-50"
-          >
-            <Trash2 className="w-3 h-3 text-slate-500" />
-            <span>{t('resetDb')}</span>
-          </button>
-        </div>
-
-        <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
+      <div className="p-4 border-t border-slate-800 bg-slate-950/20">
+        <div className="flex items-center justify-between text-[11px] text-slate-400">
           <a
             href="http://127.0.0.1:8000/docs"
             target="_blank"
