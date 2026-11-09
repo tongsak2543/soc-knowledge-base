@@ -165,6 +165,50 @@ export const api = {
   // Dashboard Stats
   getDashboardStats: () => request<DashboardStats>('/dashboard/stats'),
 
+  // Live Threat Intelligence Feeds
+  getFeeds: (params?: { q?: string; source_id?: string; category?: string; refresh?: boolean }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.q) searchParams.set('q', params.q)
+    if (params?.source_id) searchParams.set('source_id', params.source_id)
+    if (params?.category) searchParams.set('category', params.category)
+    if (params?.refresh) searchParams.set('refresh', 'true')
+
+    const queryStr = searchParams.toString()
+    return request<{
+      sources: Array<{ id: string; name: string; website: string; badge_color: string }>
+      total: number
+      fetched_at: string
+      items: Array<{
+        id: string
+        title: string
+        link: string
+        summary: string
+        source_id: string
+        source_name: string
+        source_website: string
+        badge_color: string
+        published_date: string
+        category: any
+        severity: any
+        extracted_iocs: Array<{ type: string; value: string }>
+      }>
+    }>(`/feeds${queryStr ? `?${queryStr}` : ''}`)
+  },
+
+  convertFeedToCase: (payload: {
+    title: string
+    link: string
+    summary: string
+    source_name: string
+    category: string
+    severity: string
+    extracted_iocs?: Array<{ type: string; value: string }>
+  }) =>
+    request<{ status: string; message: string; case_id: string; id: number }>('/feeds/convert-to-case', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
   // Demo Data & Management
   seedDemoData: (force: boolean = false) =>
     request<{ status: string; message: string; seeded_cases: number; seeded_iocs: number }>(

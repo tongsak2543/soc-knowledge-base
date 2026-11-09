@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Sidebar, type TabType } from './components/Sidebar'
 import { CasePage } from './pages/CasePage'
+import { FeedPage } from './pages/FeedPage'
 import { IOCPage } from './pages/IOCPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LanguageProvider } from './context/LanguageContext'
@@ -43,6 +44,15 @@ const AppContent: React.FC = () => {
           <CasePage
             onNavigateToIOC={handleNavigateToIOC}
             refreshTrigger={refreshTrigger}
+          />
+        )}
+
+        {activeTab === 'feeds' && (
+          <FeedPage
+            onNavigateToCase={(_caseId) => {
+              triggerGlobalRefresh()
+              setActiveTab('cases')
+            }}
           />
         )}
 

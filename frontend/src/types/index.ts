@@ -272,3 +272,32 @@ export function detectIocType(raw: string): IOCType {
 
   return 'IPv4'
 }
+
+export interface FeedItem {
+  id: string
+  title: string
+  link: string
+  summary: string
+  source_id: string
+  source_name: string
+  source_website: string
+  badge_color: string
+  published_date: string
+  category: ThreatCategory
+  severity: ThreatSeverity
+  extracted_iocs: Array<{ type: string; value: string }>
+}
+
+export interface FeedSource {
+  id: string
+  name: string
+  website: string
+  badge_color: string
+}
+
+export interface FeedResponse {
+  sources: FeedSource[]
+  total: number
+  fetched_at: string
+  items: FeedItem[]
+}

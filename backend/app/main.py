@@ -2,7 +2,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
-from app.routes import case_router, ioc_router, dashboard_router, seed_router, news_router
+from app.routes import (
+    case_router,
+    ioc_router,
+    dashboard_router,
+    seed_router,
+    news_router,
+    feed_router,
+)
 
 
 @asynccontextmanager
@@ -36,6 +43,7 @@ app.include_router(ioc_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
 app.include_router(seed_router, prefix="/api")
 app.include_router(news_router, prefix="/api")
+app.include_router(feed_router, prefix="/api")
 
 
 @app.get("/")

@@ -9,6 +9,7 @@ export const translations = {
     statusActive: 'ACTIVE',
     menuSection: 'SOC Repositories',
     navCases: 'Case Knowledge Base',
+    navFeeds: 'Live Threat Feeds',
     navIoc: 'IOC Repository',
     navDashboard: 'Dashboard',
     loadDemoData: 'Load Demo Cases',
@@ -147,6 +148,21 @@ export const translations = {
     saveIocBtn: 'Save to Repository',
     updateIocBtn: 'Update IOC',
 
+    // Live Threat Intelligence Feeds
+    feedsTitle: 'Live Threat Intelligence Feeds',
+    feedsSubtitle: 'Real-time cybersecurity news and advisories streamed directly from authentic threat intelligence publishers',
+    refreshFeeds: 'Refresh Feeds',
+    allSources: 'All Sources',
+    searchFeedsPlaceholder: 'Search live feeds by headline, vulnerability, malware family, or keywords...',
+    sourceLabel: 'Source',
+    readArticle: 'Read Full Article',
+    convertToCase: 'Convert to Case',
+    converting: 'Creating Case...',
+    convertedSuccess: 'Case created successfully!',
+    detectedIocs: 'Detected Indicators (IOCs)',
+    noFeedsFound: 'No Threat News Found',
+    noFeedsFoundDesc: 'Try adjusting your search query or selecting a different news source.',
+
     // Dashboard
     dashboardTitle: 'SOC Investigation Dashboard',
     dashboardSubtitle: 'Real-time incident intelligence and indicator metrics from SQLite knowledge base',
@@ -200,6 +216,7 @@ export const translations = {
     statusActive: 'พร้อมใช้งาน',
     menuSection: 'คลังข้อมูลความรู้ SOC',
     navCases: 'ฐานข้อมูลเคส (Case KB)',
+    navFeeds: 'ฟีดข่าวภัยคุกคามสด',
     navIoc: 'คลังเก็บ IOC (Repository)',
     navDashboard: 'แดชบอร์ดสรุปผล',
     loadDemoData: 'โหลดเคสตัวอย่าง',
@@ -337,6 +354,21 @@ export const translations = {
     associateCasesField: 'เชื่อมโยงกับเคสในอดีต',
     saveIocBtn: 'บันทึกเข้าคลัง IOC',
     updateIocBtn: 'อัปเดต IOC',
+
+    // Live Threat Intelligence Feeds
+    feedsTitle: 'ฟีดข่าวกรองภัยคุกคามสด (Live Threat Feeds)',
+    feedsSubtitle: 'ดึงข้อมูลข่าวสารความปลอดภัยไซเบอร์และประกาศเตือนภัยจากแหล่งข่าวจริงชั้นนำทั่วโลกแบบเรียลไทม์',
+    refreshFeeds: 'ดึงข่าวสดใหม่',
+    allSources: 'ทุกแหล่งข่าว',
+    searchFeedsPlaceholder: 'ค้นหาข่าวสดจากหัวข้อ, ชื่อมัลแวร์, ช่องโหว่ CVE หรือคีย์เวิร์ด...',
+    sourceLabel: 'แหล่งข่าว',
+    readArticle: 'อ่านข่าวต้นฉบับ',
+    convertToCase: 'สร้างเป็นเคสสอบสวน',
+    converting: 'กำลังสร้างเคส...',
+    convertedSuccess: 'สร้างเคสสำเร็จเรียบร้อย!',
+    detectedIocs: 'IOCs ที่ตรวจพบในข่าว',
+    noFeedsFound: 'ไม่พบข่าวภัยคุกคาม',
+    noFeedsFoundDesc: 'ลองเปลี่ยนคำค้นหา หรือเลือกตัวกรองแหล่งข่าวอื่น',
 
     // Dashboard
     dashboardTitle: 'แดชบอร์ดสรุปผลการสอบสวน (SOC Investigation Dashboard)',

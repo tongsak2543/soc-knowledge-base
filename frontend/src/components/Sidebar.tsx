@@ -8,12 +8,13 @@ import {
   Sparkles,
   RefreshCw,
   ExternalLink,
+  Rss,
 } from 'lucide-react'
 import { api } from '../services/api'
 import { useLanguage } from '../context/LanguageContext'
 import { LanguageToggle } from './LanguageToggle'
 
-export type TabType = 'cases' | 'iocs' | 'dashboard'
+export type TabType = 'cases' | 'feeds' | 'iocs' | 'dashboard'
 
 interface SidebarProps {
   activeTab: TabType
@@ -115,6 +116,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <Briefcase className="w-4 h-4" />
             <span>{t('navCases')}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('feeds')}
+            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'feeds'
+                ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <Rss className="w-4 h-4 text-rose-400" />
+            <span>{t('navFeeds')}</span>
           </button>
 
           <button
