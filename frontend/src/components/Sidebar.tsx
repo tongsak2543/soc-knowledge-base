@@ -4,11 +4,9 @@ import {
   Briefcase,
   Crosshair,
   LayoutDashboard,
-  Database,
-  Sparkles,
-  RefreshCw,
   ExternalLink,
   Rss,
+  Trash2,
 } from 'lucide-react'
 import { api } from '../services/api'
 import { useLanguage } from '../context/LanguageContext'
@@ -28,38 +26,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDataRefreshNeeded,
 }) => {
   const { t } = useLanguage()
-  const [seeding, setSeeding] = useState(false)
-  const [seedMessage, setSeedMessage] = useState<string | null>(null)
-
-  const handleSeedDemoData = async () => {
-    try {
-      setSeeding(true)
-      setSeedMessage(null)
-      const res = await api.seedDemoData(true)
-      setSeedMessage(res.message)
-      onDataRefreshNeeded()
-      setTimeout(() => setSeedMessage(null), 5000)
-    } catch (err: any) {
-      setSeedMessage(`Error: ${err.message || 'Seeding failed'}`)
-    } finally {
-      setSeeding(false)
-    }
-  }
+  const [resetting, setResetting] = useState(false)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
   const handleResetDb = async () => {
     if (!window.confirm(t('resetDbConfirm'))) {
       return
     }
     try {
-      setSeeding(true)
+      setResetting(true)
       await api.resetDatabase()
-      setSeedMessage('Database cleared.')
+      setStatusMessage('Database cleared.')
       onDataRefreshNeeded()
-      setTimeout(() => setSeedMessage(null), 4000)
+      setTimeout(() => setStatusMessage(null), 4000)
     } catch (err: any) {
-      setSeedMessage(`Error: ${err.message || 'Reset failed'}`)
+      setStatusMessage(`Error: ${err.message || 'Reset failed'}`)
     } finally {
-      setSeeding(false)
+      setResetting(false)
     }
   }
 
@@ -156,34 +139,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Footer Controls & Seed Actions */}
+      {/* Footer Controls & System Status */}
       <div className="p-4 border-t border-slate-800 space-y-3 bg-slate-950/20">
-        {seedMessage && (
+        {statusMessage && (
           <div className="p-2 text-xs font-mono rounded bg-slate-800/90 text-cyan-300 border border-slate-700">
-            {seedMessage}
+            {statusMessage}
           </div>
         )}
 
         <div className="space-y-1.5">
           <button
-            onClick={handleSeedDemoData}
-            disabled={seeding}
-            className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-xs font-medium rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition-colors disabled:opacity-50"
-            title="Populates SQLite with labeled demonstration SOC cases & IOCs"
-          >
-            {seeding ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            )}
-            <span>{t('loadDemoData')}</span>
-          </button>
-
-          <button
             onClick={handleResetDb}
-            disabled={seeding}
+            disabled={resetting}
             className="w-full flex items-center justify-center space-x-1.5 px-3 py-1.5 text-[11px] font-mono rounded text-slate-400 hover:text-rose-400 hover:bg-rose-950/20 transition-colors disabled:opacity-50"
           >
+            <Trash2 className="w-3 h-3 text-slate-500" />
             <span>{t('resetDb')}</span>
           </button>
         </div>

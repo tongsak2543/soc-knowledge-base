@@ -9,6 +9,7 @@ from app.routes import (
     seed_router,
     news_router,
     feed_router,
+    wazuh_router,
 )
 
 
@@ -44,6 +45,7 @@ app.include_router(dashboard_router, prefix="/api")
 app.include_router(seed_router, prefix="/api")
 app.include_router(news_router, prefix="/api")
 app.include_router(feed_router, prefix="/api")
+app.include_router(wazuh_router, prefix="/api")
 
 
 @app.get("/")
