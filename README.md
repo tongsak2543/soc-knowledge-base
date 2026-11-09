@@ -204,13 +204,13 @@ powershell -ExecutionPolicy Bypass -File "c:\Cti For wazuh\run-all.ps1"
 ```powershell
 cd "c:\Cti For wazuh\backend"
 $env:PYTHONPATH="c:\Cti For wazuh\backend"
-.\venv\Scripts\uvicorn.exe app.main:app --host 127.0.0.1 --port 8000
+.\venv\Scripts\uvicorn.exe app.main:app --host 0.0.0.0 --port 8000
 ```
 
 **Terminal 2 (Frontend):**
 ```powershell
 cd "c:\Cti For wazuh\frontend"
-npm run dev -- --host 127.0.0.1 --port 5173
+npm run dev -- --host 0.0.0.0 --port 5173
 ```
 
 ---

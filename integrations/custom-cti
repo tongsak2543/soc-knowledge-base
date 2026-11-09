@@ -64,3 +64,4 @@ try:
 
 except Exception as e:
     print(f"[CTI ERROR] Failed to query CTI API: {e}", file=sys.stderr)
+

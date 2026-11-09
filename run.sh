@@ -71,19 +71,19 @@ cleanup() {
 trap cleanup SIGINT SIGTERM EXIT
 
 # 1. Start Backend Server
-echo -e "${YELLOW}[1/2] Launching FastAPI Backend on http://127.0.0.1:8000...${NC}"
+echo -e "${YELLOW}[1/2] Launching FastAPI Backend on http://0.0.0.0:8000...${NC}"
 export PYTHONPATH="$BACKEND_DIR"
 cd "$BACKEND_DIR" || exit 1
-"$UVICORN_CMD" app.main:app --host 127.0.0.1 --port 8000 --reload &
+"$UVICORN_CMD" app.main:app --host 0.0.0.0 --port 8000 --reload &
 BACKEND_PID=$!
 
 # Wait briefly for backend
 sleep 2
 
 # 2. Start Frontend Server
-echo -e "${YELLOW}[2/2] Launching Vite React Frontend on http://127.0.0.1:5173...${NC}"
+echo -e "${YELLOW}[2/2] Launching Vite React Frontend on http://0.0.0.0:5173...${NC}"
 cd "$FRONTEND_DIR" || exit 1
-$NPM_CMD run dev -- --host 127.0.0.1 --port 5173 &
+$NPM_CMD run dev -- --host 0.0.0.0 --port 5173 &
 FRONTEND_PID=$!
 
 echo -e "\n${GREEN}==========================================================${NC}"
