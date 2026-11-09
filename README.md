@@ -140,9 +140,9 @@ c:\Cti For wazuh/
 │   ├── tsconfig.json
 │   └── vite.config.ts            # Proxy configured for /api -> http://127.0.0.1:8000
 │
-├── run-backend.bat               # Windows batch script to launch FastAPI backend
-├── run-frontend.bat              # Windows batch script to launch React frontend
-├── run-all.ps1                   # Windows PowerShell script to launch both services
+├── run.bat                       # One-click startup for Windows (Backend + Frontend)
+├── stop.bat                      # One-click shutdown script for Windows
+├── run.sh                        # Linux / macOS startup script
 └── README.md
 ```
 
@@ -186,19 +186,13 @@ c:\Cti For wazuh/
 
 ---
 
-## 5. Startup Commands for Windows
+## 5. Startup Commands
 
-### Option 1: Quick Launch via PowerShell
-Double-click or run the included PowerShell script:
-```powershell
-powershell -ExecutionPolicy Bypass -File "c:\Cti For wazuh\run-all.ps1"
-```
+### Option 1: One-Click Startup (Recommended)
+- **Start All**: Double-click `run.bat` (or run `./run.sh` on Linux/macOS)
+- **Stop All**: Double-click `stop.bat`
 
-### Option 2: Individual Batch Scripts
-- Launch Backend: double-click `run-backend.bat`
-- Launch Frontend: double-click `run-frontend.bat`
-
-### Option 3: Manual Terminal Commands
+### Option 2: Manual Terminal Commands
 
 **Terminal 1 (Backend):**
 ```powershell
