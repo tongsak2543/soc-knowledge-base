@@ -74,8 +74,8 @@ def get_wazuh_integration_stats(db: Session = Depends(get_db)):
 
 @router.get("/lists/ips.cdb")
 def export_wazuh_ip_cdb_list(
-    min_confidence: str = Query("High", description="Filter confidence: High, Medium, or All"),
-    include_core: bool = Query(True, description="Include verified internal incident IOCs"),
+    min_confidence: str = "High",
+    include_core: bool = True,
     db: Session = Depends(get_db),
 ):
     """
@@ -88,17 +88,22 @@ def export_wazuh_ip_cdb_list(
 
     # 1. Include verified internal case IPs (Tier 2 - Highest Priority)
     if include_core:
-        core_ips = db.query(IOC).filter(IOC.ioc_type.in_(["IPv4", "IPv6"])).all()
-        for ioc in core_ips:
-            ip = ioc.normalized_value.strip()
+        core_ips = (
+            db.query(IOC.normalized_value, IOC.description)
+            .filter(IOC.ioc_type.in_(["IPv4", "IPv6"]))
+            .all()
+        )
+        for norm_val, desc in core_ips:
+            ip = (norm_val or "").strip()
             if ip and ip not in seen_ips:
                 seen_ips.add(ip)
-                case_names = [c.case_id for c in ioc.cases]
-                raw_tag = f"SOC_CASE_{'_'.join(case_names)}" if case_names else "SOC_CONFIRMED"
+                raw_tag = "MALICIOUS"
+                if desc and "[" in desc and "]" in desc:
+                    raw_tag = desc.split("]")[0].replace("[", "").strip()
                 cdb_lines.append(f"{ip}:{sanitize_cdb_value(raw_tag)}")
 
     # 2. Include active high-confidence feed IPs (Tier 1 Staging)
-    query = db.query(FeedIOC).filter(
+    query = db.query(FeedIOC.normalized_value, FeedIOC.source_name).filter(
         FeedIOC.is_active == True,
         FeedIOC.ioc_type.in_(["IPv4", "IPv6"]),
     )
@@ -106,11 +111,11 @@ def export_wazuh_ip_cdb_list(
         query = query.filter(FeedIOC.confidence == min_confidence)
 
     feed_ips = query.all()
-    for fi in feed_ips:
-        ip = fi.normalized_value.strip()
+    for norm_val, source_name in feed_ips:
+        ip = (norm_val or "").strip()
         if ip and ip not in seen_ips:
             seen_ips.add(ip)
-            safe_source = sanitize_cdb_value(fi.source_name, default="CTI_FEED")
+            safe_source = sanitize_cdb_value(source_name, default="CTI_FEED")
             cdb_lines.append(f"{ip}:{safe_source}")
 
     content = "\n".join(cdb_lines) + "\n" if cdb_lines else ""
@@ -131,12 +136,16 @@ def export_wazuh_hash_cdb_list(
     """
     lines = []
     seen = set()
-    hashes = db.query(IOC).filter(IOC.ioc_type.in_(["MD5", "SHA1", "SHA256"])).all()
-    for h in hashes:
-        val = h.normalized_value.strip().lower()
+    hashes = (
+        db.query(IOC.normalized_value, IOC.ioc_type)
+        .filter(IOC.ioc_type.in_(["MD5", "SHA1", "SHA256"]))
+        .all()
+    )
+    for norm_val, ioc_type in hashes:
+        val = (norm_val or "").strip().lower()
         if val and val not in seen:
             seen.add(val)
-            tag = sanitize_cdb_value(f"{h.ioc_type}_CONFIRMED")
+            tag = sanitize_cdb_value(f"{ioc_type}_CONFIRMED")
             lines.append(f"{val}:{tag}")
 
     content = "\n".join(lines) + "\n" if lines else ""
@@ -156,9 +165,13 @@ def export_wazuh_domain_cdb_list(
     """
     lines = []
     seen = set()
-    domains = db.query(IOC).filter(IOC.ioc_type == "Domain").all()
-    for d in domains:
-        val = d.normalized_value.strip().lower()
+    domains = (
+        db.query(IOC.normalized_value)
+        .filter(IOC.ioc_type == "Domain")
+        .all()
+    )
+    for (norm_val,) in domains:
+        val = (norm_val or "").strip().lower()
         if val and val not in seen:
             seen.add(val)
             tag = sanitize_cdb_value("MALICIOUS_C2_DOMAIN")

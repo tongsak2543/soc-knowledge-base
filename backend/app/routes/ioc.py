@@ -18,7 +18,7 @@ router = APIRouter(prefix="/iocs", tags=["IOC Management"])
 def get_all_iocs(
     q: Optional[str] = Query(None, description="Search keyword in value, normalized value, or description"),
     ioc_type: Optional[str] = Query(None, description="Filter by IOC type"),
-    limit: int = Query(100, ge=1, le=500),
+    limit: int = Query(250, ge=1, le=10000),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):

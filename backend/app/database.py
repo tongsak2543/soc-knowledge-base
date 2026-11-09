@@ -1,9 +1,13 @@
 import os
+from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Default to SQLite tip.db in the backend directory, portable for PostgreSQL migration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./tip.db")
+# Use absolute path to backend/tip.db so cwd doesn't matter
+BASE_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_DB_PATH = (BASE_DIR / "tip.db").as_posix()
+
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_DB_PATH}")
 
 connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
@@ -21,4 +25,3 @@ def get_db():
         yield db
     finally:
         db.close()
-

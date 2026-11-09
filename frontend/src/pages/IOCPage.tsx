@@ -70,7 +70,7 @@ export const IOCPage: React.FC<IOCPageProps> = ({
       const data = await api.getIOCs({
         q: searchQuery.trim() || undefined,
         ioc_type: selectedType || undefined,
-        limit: 500,
+        limit: 1000,
       })
       setIocs(data)
     } catch (err: any) {
@@ -142,7 +142,7 @@ export const IOCPage: React.FC<IOCPageProps> = ({
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-white tracking-tight">{t('iocTitle')}</h1>
             <span className="text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full bg-slate-800 text-cyan-400 border border-slate-700">
-              {iocs.length} {t('indicatorsCount')}
+              {iocs.length.toLocaleString()} {t('indicatorsCount')}
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
