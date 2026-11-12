@@ -43,15 +43,20 @@ CTI_IP="<IP_เครื่อง_CTI_SERVER>"
 # ดาวน์โหลดสคริปต์ตัวเชื่อมต่อตรงจาก API
 curl -s http://${CTI_IP}:8000/api/wazuh/integrator/script -o /var/ossec/integrations/custom-cti
 
-# ให้สิทธิ์การรันสำหรับผู้ใช้ wazuh
+# กลุ่มของ Wazuh: 'ossec' ใน 4.2 และเก่ากว่า, 'wazuh' ใน 4.3 ขึ้นไป
+WAZUH_GROUP=$(stat -c %G /var/ossec/etc)
+
+# ให้สิทธิ์การรันสำหรับกลุ่ม Wazuh
 chmod 750 /var/ossec/integrations/custom-cti
-chown root:wazuh /var/ossec/integrations/custom-cti
+chown root:${WAZUH_GROUP} /var/ossec/integrations/custom-cti
 
 # สร้างไฟล์รับ Alert Log
 touch /var/ossec/logs/cti-alerts.log
-chown wazuh:wazuh /var/ossec/logs/cti-alerts.log
+chown ${WAZUH_GROUP}:${WAZUH_GROUP} /var/ossec/logs/cti-alerts.log
 chmod 660 /var/ossec/logs/cti-alerts.log
 ```
+
+> ℹ️ สคริปต์รันด้วย Python ที่มากับ Wazuh (`/var/ossec/framework/python/bin/python3`) จึงไม่ต้องติดตั้ง python3 เพิ่ม (เช่นบน CentOS 7) ตรวจได้ด้วย `ls -l /var/ossec/framework/python/bin/python3`
 
 ---
 
@@ -61,11 +66,12 @@ chmod 660 /var/ossec/logs/cti-alerts.log
 ```xml
 <ossec_config>
 
-  <!-- 1. สั่งให้ Wazuh ส่ง Alert ทุกตัว (Level >= 5) มาเช็คกับ CTI API โดยตรง -->
+  <!-- 1. ส่ง Alert (Level >= 5) เฉพาะกลุ่มที่มี IP / Domain / Hash มาเช็คกับ CTI API -->
   <integration>
     <name>custom-cti</name>
     <hook_url>http://<IP_เครื่อง_CTI_SERVER>:8000/api/wazuh/webhook/alert</hook_url>
     <level>5</level>
+    <group>sysmon,syscheck,firewall,ids,web,authentication_failed,</group>
     <alert_format>json</alert_format>
   </integration>
 
@@ -79,6 +85,10 @@ chmod 660 /var/ossec/logs/cti-alerts.log
 ```
 
 > ⚠️ **หมายเหตุ:** อย่าลืมเปลี่ยน `<IP_เครื่อง_CTI_SERVER>` ให้เป็น IP ของเครื่องที่รัน Backend FastAPI (เช่น `192.168.1.50`)
+>
+> 💡 **`<group>`** กรองให้ส่งเฉพาะ Alert ที่มักมี IP / Domain / Hash (Wazuh เลือก Alert ที่อยู่ในกลุ่มใดกลุ่มหนึ่ง) เพื่อไม่ให้ Manager ต้องเปิด Python ทุก Alert ปรับรายชื่อกลุ่มได้ตามแหล่ง Log ที่มี
+>
+> 💡 Webhook จะนับเฉพาะ Feed IOC ที่ confidence ≥ High เป็นภัยคุกคาม ถ้าต้องการเปลี่ยนให้ต่อท้าย `hook_url` เช่น `.../webhook/alert?min_feed_confidence=Critical`
 
 ---
 
@@ -152,10 +162,11 @@ curl -s "http://<IP_เครื่อง_CTI_SERVER>:8000/api/wazuh/ioc/check?v
 ```bash
 tail -f /var/ossec/logs/integrations.log
 ```
-เมื่อมีอีเวนต์ทราฟฟิกหรือ Log เกิดขึ้น สคริปต์จะยิง HTTP POST ตรงเข้าหา FastAPI CTI Backend และพิมพ์:
+เมื่อมีอีเวนต์ทราฟฟิกหรือ Log เกิดขึ้น สคริปต์จะยิง HTTP POST ตรงเข้าหา FastAPI CTI Backend และเขียนลง `integrations.log`:
 ```
-[CTI HIT] Threat detected on host Windows-PC: Cobalt Strike C2 / Beacon (1.117.74.144)
+2026/11/11 15:30:00 custom-cti: INFO: [CTI HIT] Threat detected on host Windows-PC: Cobalt Strike C2 / Beacon (1.117.74.144)
 ```
+ถ้ามีปัญหา จะเห็นบรรทัด `ERROR` บอกสาเหตุ เช่น `CTI API request to ... failed` (ต่อ API ไม่ได้ / Firewall) หรือ `NOT recorded, cannot write .../cti-alerts.log` (สิทธิ์ไฟล์ผิด)
 
 ---
 

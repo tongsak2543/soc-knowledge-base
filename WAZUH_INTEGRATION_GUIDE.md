@@ -158,9 +158,10 @@ Wazuh มีโมดูล `wazuh-integratord` ที่สามารถส�
 # ดาวน์โหลดสคริปต์จาก CTI API
 curl -s http://<CTI_SERVER_IP>:8000/api/wazuh/integrator/script -o /var/ossec/integrations/custom-cti
 
-# ให้สิทธิ์ Execute
+# ให้สิทธิ์ Execute (กลุ่ม 'ossec' ใน 4.2 และเก่ากว่า, 'wazuh' ใน 4.3 ขึ้นไป)
+WAZUH_GROUP=$(stat -c %G /var/ossec/etc)
 chmod 750 /var/ossec/integrations/custom-cti
-chown root:wazuh /var/ossec/integrations/custom-cti
+chown root:${WAZUH_GROUP} /var/ossec/integrations/custom-cti
 ```
 
 ### ขั้นตอนที่ 2: ตั้งค่า `<integration>` ใน `/var/ossec/etc/ossec.conf`
@@ -172,12 +173,13 @@ chown root:wazuh /var/ossec/integrations/custom-cti
     <name>custom-cti</name>
     <hook_url>http://<CTI_SERVER_IP>:8000/api/wazuh/webhook/alert</hook_url>
     <level>7</level>
+    <group>sysmon,syscheck,firewall,ids,web,authentication_failed,</group>
     <alert_format>json</alert_format>
   </integration>
 </ossec_config>
 ```
 
-> **คำอธิบาย:** ทุก Alert ที่มีระดับความรุนแรง Level 7 ขึ้นไป จะถูกส่งมาให้ CTI API สแกน IP, Hashes และ Domain โดยอัตโนมัติ
+> **คำอธิบาย:** Alert ที่มีระดับ Level 7 ขึ้นไป และอยู่ในกลุ่มที่ระบุ จะถูกส่งมาให้ CTI API สแกน IP, Hashes และ Domain โดยอัตโนมัติ
 
 ### ขั้นตอนที่ 3: รีสตาร์ต Wazuh Manager
 ```bash
